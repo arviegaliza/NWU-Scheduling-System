@@ -1,8 +1,10 @@
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 require("dotenv").config();
 
+// Import routes
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const researchActivityRoutes = require("./routes/researchActivityRoutes");
 const adminProfileRoutes = require("./routes/adminProfileRoutes");
@@ -13,14 +15,16 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://nwuschedulingsystem.netlify.app",
+  "https://staffnwuschedulingsystem.netlify.app",
   process.env.FRONTEND_URL,
-].filter(Boolean).map((origin) => origin.replace(/\/+$/, ""));
+]
+  .filter(Boolean)
+  .map((origin) => origin.replace(/\/+$/, ""));
 
 // CORS configuration
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an Origin header (e.g., direct server checks)
       if (!origin) {
         return callback(null, true);
       }
@@ -40,6 +44,7 @@ app.use(
   })
 );
 
+// Middleware
 app.use(express.json());
 
 // Serve uploaded profile pictures
@@ -76,6 +81,8 @@ app.use((err, req, res, next) => {
       message: "Request blocked by CORS policy.",
     });
   }
+
+  console.error(err);
 
   res.status(500).json({
     message: "Internal server error.",
