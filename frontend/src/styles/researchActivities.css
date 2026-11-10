@@ -1,463 +1,631 @@
 
-import { useEffect, useState } from "react";
-import { Search, Trash2, RefreshCw, Pencil } from "lucide-react";
-import Schedule, {
-  type ScheduleData,
-} from "../components/schedules/ScheduleForm";
-import "../styles/manageSchedules.css";
+/* =========================================
+   RESEARCH ACTIVITIES PAGE
+========================================= */
 
-interface ScheduleRecord extends ScheduleData {
-  id: number;
+.page-container {
+  width: 100%;
+  min-width: 0;
+  padding: 25px;
+  box-sizing: border-box;
+  color: #1e293b;
 }
 
-const API_URL = `${
-  import.meta.env.VITE_API_URL || "http://localhost:5000"
-}/api/schedules`;
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 25px;
+}
 
-// Strict 12-hour time format: 10:00 AM, 1:30 PM, etc.
-const createDateTime = (
-  dateValue: string,
-  timeValue: string
-): Date | null => {
-  const dateParts = dateValue.split("-").map(Number);
+.page-heading h1 {
+  margin: 0;
+  color: #102746;
+  font-size: 25px;
+  font-weight: 700;
+}
 
-  if (
-    dateParts.length !== 3 ||
-    dateParts.some(Number.isNaN)
-  ) {
-    return null;
+.page-heading p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.research-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* =========================================
+   BUTTONS
+========================================= */
+
+.primary-button,
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 17px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primary-button {
+  border: 1px solid #102746;
+  background: #102746;
+  color: #ffffff;
+}
+
+.primary-button:hover {
+  background: #193b65;
+  border-color: #193b65;
+}
+
+.secondary-button {
+  border: 1px solid #dbe2ea;
+  background: #ffffff;
+  color: #475569;
+}
+
+.secondary-button:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   CONTENT CARD
+========================================= */
+
+.content-card {
+  width: 100%;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e8edf3;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
+}
+
+/* =========================================
+   TOOLBAR / SEARCH / FILTER
+========================================= */
+
+.research-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.research-toolbar .search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 240px;
+  height: 42px;
+  padding: 0 13px;
+  border: 1px solid #dbe2ea;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #94a3b8;
+  box-sizing: border-box;
+}
+
+.research-toolbar .search-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.research-toolbar .search-box input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #334155;
+  font-size: 13px;
+}
+
+.research-toolbar .search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.research-toolbar > select {
+  min-width: 155px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #dbe2ea;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.research-toolbar > select:focus {
+  border-color: #2563eb;
+}
+
+.research-record-count {
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* =========================================
+   RESEARCH TABLE
+========================================= */
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.schedule-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.schedule-table thead {
+  background: #f8fafc;
+}
+
+.schedule-table th {
+  padding: 14px 15px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.schedule-table td {
+  padding: 16px 15px;
+  border-bottom: 1px solid #edf1f5;
+  color: #475569;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.schedule-table tbody tr:hover {
+  background: #fafcff;
+}
+
+.schedule-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.research-title-cell {
+  min-width: 240px;
+  max-width: 380px;
+  color: #1e293b !important;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.empty-table {
+  padding: 35px !important;
+  text-align: center;
+  color: #94a3b8 !important;
+  font-size: 13px;
+}
+
+/* =========================================
+   STATUS BADGES
+========================================= */
+
+.schedule-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 11px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.schedule-status.pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.schedule-status.ongoing {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.schedule-status.completed {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+/* =========================================
+   TABLE ACTIONS
+========================================= */
+
+.research-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.research-table-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.research-table-actions .edit-action {
+  color: #2563eb;
+}
+
+.research-table-actions .edit-action:hover {
+  background: #eff6ff;
+}
+
+.research-table-actions .delete-action {
+  color: #dc2626;
+}
+
+.research-table-actions .delete-action:hover {
+  background: #fef2f2;
+}
+
+/* =========================================
+   ERROR MESSAGE
+========================================= */
+
+.research-error {
+  padding: 12px 15px;
+  margin-bottom: 16px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* =========================================
+   CENTERED MODAL OVERLAY
+========================================= */
+
+.research-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(4px);
+
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   MODAL CONTAINER
+========================================= */
+
+.research-modal {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  max-height: 90vh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 14px;
+
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25);
+
+  animation: researchModalIn 0.22s ease-out;
+}
+
+.research-modal form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* =========================================
+   MODAL HEADER
+========================================= */
+
+.research-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+
+  padding: 25px 28px;
+
+  border-bottom: 1px solid #e8edf3;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.research-modal-label {
+  display: block;
+  margin-bottom: 8px;
+
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.research-modal-header h2 {
+  margin: 0 0 7px;
+  color: #102746;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.research-modal-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.research-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #f1f5f9;
+  color: #475569;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.research-modal-close:hover {
+  background: #e2e8f0;
+  color: #102746;
+}
+
+.research-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   MODAL BODY
+========================================= */
+
+.research-modal-body {
+  padding: 25px 28px;
+  overflow-y: auto;
+}
+
+.research-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.research-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.research-form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.research-form-group label {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.research-form-group input,
+.research-form-group select {
+  width: 100%;
+  height: 43px;
+  box-sizing: border-box;
+
+  padding: 0 12px;
+
+  border: 1px solid #dbe2ea;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #334155;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  outline: none;
+
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.research-form-group input:hover,
+.research-form-group select:hover {
+  border-color: #cbd5e1;
+}
+
+.research-form-group input:focus,
+.research-form-group select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+.research-form-group input::placeholder {
+  color: #94a3b8;
+}
+
+.research-form-group select {
+  cursor: pointer;
+}
+
+/* =========================================
+   MODAL FOOTER
+========================================= */
+
+.research-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 18px 28px;
+
+  border-top: 1px solid #e8edf3;
+  background: #f8fafc;
+
+  flex-shrink: 0;
+}
+
+.research-modal-footer button {
+  min-height: 40px;
+}
+
+/* =========================================
+   MODAL ANIMATION
+========================================= */
+
+@keyframes researchModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
   }
 
-  const timeMatch = timeValue.trim().match(
-    /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i
-  );
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
-  if (!timeMatch) return null;
+/* =========================================
+   RESPONSIVE DESIGN
+========================================= */
 
-  let hours = Number(timeMatch[1]);
-  const minutes = Number(timeMatch[2]);
-  const period = timeMatch[3].toUpperCase();
-
-  if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) {
-    return null;
+@media (max-width: 768px) {
+  .page-container {
+    padding: 18px;
   }
 
-  if (period === "PM" && hours !== 12) {
-    hours += 12;
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  if (period === "AM" && hours === 12) {
-    hours = 0;
+  .research-header-actions {
+    width: 100%;
   }
 
-  const [year, month, day] = dateParts;
-
-  const result = new Date(
-    year,
-    month - 1,
-    day,
-    hours,
-    minutes,
-    0,
-    0
-  );
-
-  // Reject invalid calendar dates.
-  if (
-    result.getFullYear() !== year ||
-    result.getMonth() !== month - 1 ||
-    result.getDate() !== day
-  ) {
-    return null;
+  .research-header-actions button {
+    flex: 1;
   }
 
-  return result;
-};
-
-// Automatically determine the schedule status.
-const getEffectiveStatus = (
-  schedule: ScheduleRecord,
-  now: Date
-): string => {
-  const savedStatus = String(schedule.status);
-
-  // Preserve manually cancelled or completed schedules.
-  if (
-    savedStatus.toLowerCase() === "cancelled" ||
-    savedStatus.toLowerCase() === "completed"
-  ) {
-    return savedStatus;
+  .content-card {
+    padding: 16px;
   }
 
-  const start = createDateTime(
-    schedule.date,
-    schedule.startTime
-  );
-
-  const end = createDateTime(
-    schedule.date,
-    schedule.endTime
-  );
-
-  // Keep saved status if date/time is invalid.
-  if (!start || !end || end <= start) {
-    return savedStatus;
+  .research-toolbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  if (now >= end) {
-    return "Completed";
+  .research-toolbar .search-box {
+    width: 100%;
+    min-width: 0;
   }
 
-  if (now >= start && now < end) {
-    return "Ongoing";
+  .research-toolbar > select {
+    width: 100%;
   }
 
-  return savedStatus;
-};
+  .research-record-count {
+    align-self: flex-start;
+  }
+}
 
-export default function ManageSchedules() {
-  const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+@media (max-width: 600px) {
+  .research-modal-overlay {
+    padding: 12px;
+  }
 
-  const [editingSchedule, setEditingSchedule] =
-    useState<ScheduleRecord | null>(null);
+  .research-modal {
+    max-height: 94vh;
+  }
 
-  const [saving, setSaving] = useState(false);
+  .research-modal-header {
+    padding: 20px;
+  }
 
-  // Current local time.
-  const [now, setNow] = useState(() => new Date());
+  .research-modal-body {
+    padding: 20px;
+  }
 
-  // Update displayed statuses every 15 seconds.
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setNow(new Date());
-    }, 15000);
+  .research-form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 
-    return () => window.clearInterval(interval);
-  }, []);
+  .research-form-group.full-width {
+    grid-column: auto;
+  }
 
-  // Fetch schedules from backend.
-  const fetchSchedules = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  .research-modal-footer {
+    padding: 15px 20px;
+  }
 
-      const response = await fetch(API_URL);
-
-      if (!response.ok) {
-        throw new Error("Failed to retrieve schedules.");
-      }
-
-      const data = await response.json();
-
-      setSchedules(data);
-    } catch (err) {
-      console.error("Fetch schedules error:", err);
-
-      setError(
-        "Unable to load schedules. Please check your backend connection."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSchedules();
-  }, []);
-
-  // Update schedule.
-  const handleUpdateSchedule = async (
-    updatedSchedule: ScheduleData
-  ) => {
-    if (!editingSchedule) return;
-
-    try {
-      setSaving(true);
-      setError("");
-
-      const response = await fetch(
-        `${API_URL}/${editingSchedule.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updatedSchedule),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to update schedule."
-        );
-      }
-
-      await fetchSchedules();
-
-      setEditingSchedule(null);
-
-      alert("Schedule updated successfully!");
-    } catch (err) {
-      console.error("Update schedule error:", err);
-
-      alert(
-        err instanceof Error
-          ? err.message
-          : "Unable to update schedule. Please try again."
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Delete schedule.
-  const deleteSchedule = async (id: number) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this schedule?"
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete schedule.");
-      }
-
-      setSchedules((previous) =>
-        previous.filter((schedule) => schedule.id !== id)
-      );
-    } catch (err) {
-      console.error("Delete schedule error:", err);
-
-      alert("Unable to delete schedule. Please try again.");
-    }
-  };
-
-  // Search and filter using automatically calculated status.
-  const filteredSchedules = schedules.filter((schedule) => {
-    const searchValue = search.toLowerCase();
-
-    const matchesSearch =
-      schedule.researchTitle.toLowerCase().includes(searchValue) ||
-      schedule.researcher.toLowerCase().includes(searchValue);
-
-    const effectiveStatus = getEffectiveStatus(schedule, now);
-
-    const matchesFilter =
-      filter === "All" || effectiveStatus === filter;
-
-    return matchesSearch && matchesFilter;
-  });
-
-  return (
-    <div className="page-container manage-schedules-page">
-      <div className="page-heading">
-        <div>
-          <h1>Manage Schedules</h1>
-          <p>
-            View, search, edit, and manage existing research schedules.
-          </p>
-        </div>
-
-        <button
-          className="secondary-button"
-          onClick={fetchSchedules}
-          disabled={loading}
-        >
-          <RefreshCw
-            size={17}
-            className={loading ? "refresh-spinning" : ""}
-          />
-          Refresh
-        </button>
-      </div>
-
-      <div className="content-card">
-        <div className="toolbar">
-          <div className="search-box">
-            <Search size={18} />
-
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search research title or researcher..."
-            />
-          </div>
-
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Ongoing">Ongoing</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        </div>
-
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
-
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Research Title</th>
-                <th>Researcher</th>
-                <th>Activity</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Venue</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8}>Loading schedules...</td>
-                </tr>
-              ) : filteredSchedules.length > 0 ? (
-                filteredSchedules.map((schedule) => {
-                  const effectiveStatus = getEffectiveStatus(
-                    schedule,
-                    now
-                  );
-
-                  return (
-                    <tr key={schedule.id}>
-                      <td>{schedule.researchTitle}</td>
-
-                      <td>{schedule.researcher}</td>
-
-                      <td>{schedule.activity}</td>
-
-                      <td>{schedule.date}</td>
-
-                      <td>
-                        {schedule.startTime} - {schedule.endTime}
-                      </td>
-
-                      <td>{schedule.venue}</td>
-
-                      <td>
-                        <span
-                          className={`status ${effectiveStatus.toLowerCase()}`}
-                        >
-                          {effectiveStatus === "Ongoing" && (
-                            <span className="ongoing-indicator" />
-                          )}
-
-                          {effectiveStatus}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className="schedule-actions">
-                          <button
-                            type="button"
-                            className="edit-icon"
-                            onClick={() =>
-                              setEditingSchedule(schedule)
-                            }
-                            title="Edit schedule"
-                          >
-                            <Pencil size={17} />
-                          </button>
-
-                          <button
-                            type="button"
-                            className="danger-icon"
-                            onClick={() =>
-                              deleteSchedule(schedule.id)
-                            }
-                            title="Delete schedule"
-                          >
-                            <Trash2 size={17} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={8}>
-                    No schedules found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* EDIT SCHEDULE MODAL */}
-      {editingSchedule && (
-        <div
-          className="schedule-edit-overlay"
-          onClick={(e) => {
-            if (
-              e.target === e.currentTarget &&
-              !saving
-            ) {
-              setEditingSchedule(null);
-            }
-          }}
-        >
-          <div className="schedule-edit-modal">
-            <div className="schedule-edit-header">
-              <div>
-                <h2>Edit Schedule</h2>
-                <p>
-                  Update the details of this research schedule.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="schedule-edit-close"
-                onClick={() => setEditingSchedule(null)}
-                disabled={saving}
-              >
-                ×
-              </button>
-            </div>
-
-            <Schedule
-              key={editingSchedule.id}
-              initialData={editingSchedule}
-              onSubmit={handleUpdateSchedule}
-              onCancel={() => setEditingSchedule(null)}
-            />
-
-            {saving && (
-              <div className="schedule-saving-overlay">
-                Saving changes...
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  .research-modal-footer button {
+    flex: 1;
+  }
 }
