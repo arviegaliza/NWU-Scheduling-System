@@ -1013,3 +1013,27 @@
     transition: none;
   }
 }
+
+/* Ongoing schedule status */
+.staff-stat-card.ongoing {
+  border-left: 4px solid #2563eb;
+}
+
+.staff-calendar-event.ongoing,
+.staff-status.ongoing {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.legend-ongoing {
+  background: #2563eb;
+}
+
+/* Keep the ongoing legend indicator consistent */
+.legend-ongoing {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
