@@ -22,6 +22,31 @@ const SERVER_URL =
 
 const API_URL = `${SERVER_URL}/api/schedules`;
 
+// CONVERT 24-HOUR TIME TO 12-HOUR AM/PM FORMAT
+const formatTime = (time: string) => {
+  if (!time) return "";
+
+  const normalizedTime = time.trim();
+
+  const match = normalizedTime.match(
+    /^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/
+  );
+
+  if (!match) return normalizedTime;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return normalizedTime;
+  }
+
+  const period = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+
+  return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
+};
+
 export default function Calendar() {
   const [schedules, setSchedules] = useState<ScheduleData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,12 +77,12 @@ export default function Calendar() {
 
       setSchedules(data);
 
-      // Keep the selected schedule details synchronized.
+      // Keep the selected schedule details updated.
       setSelectedSchedule((previous) => {
         if (!previous) return null;
 
         const updatedSchedule = data.find(
-          (schedule) => schedule.id === previous.id
+          (schedule) => String(schedule.id) === String(previous.id)
         );
 
         return updatedSchedule ?? null;
@@ -115,7 +140,6 @@ export default function Calendar() {
         );
       }
 
-      // Refresh schedules after successful saving.
       await fetchSchedules(false);
 
       setShowForm(false);
@@ -302,6 +326,7 @@ export default function Calendar() {
               hour: "numeric",
               minute: "2-digit",
               meridiem: "short",
+              hour12: true,
             }}
           />
         )}
@@ -379,7 +404,8 @@ export default function Calendar() {
               <div>
                 <span>Time</span>
                 <strong>
-                  {selectedSchedule.startTime} - {selectedSchedule.endTime}
+                  {formatTime(selectedSchedule.startTime)} -{" "}
+                  {formatTime(selectedSchedule.endTime)}
                 </strong>
               </div>
 
@@ -390,7 +416,9 @@ export default function Calendar() {
 
               <div>
                 <span>Panel Chair</span>
-                <strong>{selectedSchedule.panelChair || "Not assigned"}</strong>
+                <strong>
+                  {selectedSchedule.panelChair || "Not assigned"}
+                </strong>
               </div>
 
               <div>
