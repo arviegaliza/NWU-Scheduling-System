@@ -1,0 +1,281 @@
+
+.settings-page {
+  padding: 28px;
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #243247;
+}
+
+.settings-header {
+  margin-bottom: 24px;
+}
+
+.settings-header h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 700;
+  color: #102746;
+}
+
+.settings-header p {
+  margin: 0;
+  color: #78869a;
+  font-size: 14px;
+}
+
+.settings-card {
+  max-width: 850px;
+  padding: 28px;
+  background: #fff;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  box-shadow: 0 4px 15px rgba(16, 39, 70, 0.05);
+}
+
+.settings-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.settings-card-header h2 {
+  margin: 0 0 6px;
+  color: #102746;
+  font-size: 19px;
+}
+
+.settings-card-header p {
+  margin: 0;
+  color: #8792a2;
+  font-size: 13px;
+}
+
+.settings-profile-section {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 32px 0;
+}
+
+.settings-avatar-wrapper {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+}
+
+.settings-avatar,
+.settings-avatar-placeholder {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.settings-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf0f8;
+  color: #102746;
+}
+
+.settings-camera-button {
+  position: absolute;
+  right: 2px;
+  bottom: 3px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #102746;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 3px solid white;
+  transition: background 0.2s;
+}
+
+.settings-camera-button:hover {
+  background: #1c4775;
+}
+
+.settings-profile-info h3 {
+  margin: 0 0 10px;
+  font-size: 20px;
+  color: #102746;
+}
+
+.settings-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 20px;
+  background: #edf3fa;
+  color: #244b75;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settings-photo-hint {
+  margin: 9px 0 0;
+  color: #8792a2;
+  font-size: 12px;
+}
+
+.settings-divider {
+  height: 1px;
+  background: #e9edf2;
+  margin: 25px 0;
+}
+
+.settings-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.settings-field label {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #46566b;
+}
+
+.settings-input-wrapper {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 13px;
+  border: 1px solid #dfe5ed;
+  border-radius: 8px;
+  color: #8996a8;
+  background: #fff;
+}
+
+.settings-input-wrapper:focus-within {
+  border-color: #315f91;
+  box-shadow: 0 0 0 3px rgba(49, 95, 145, 0.08);
+}
+
+.settings-input-wrapper input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #243247;
+  font-size: 14px;
+}
+
+.settings-input-wrapper input:disabled {
+  color: #657286;
+  cursor: not-allowed;
+}
+
+.settings-input-wrapper:has(input:disabled) {
+  background: #f6f8fa;
+}
+
+.settings-button {
+  min-height: 40px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.settings-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-button.primary {
+  background: #102746;
+  color: white;
+}
+
+.settings-button.primary:hover:not(:disabled) {
+  background: #1c4775;
+}
+
+.settings-button.secondary {
+  background: #edf0f4;
+  color: #475569;
+}
+
+.settings-button.secondary:hover:not(:disabled) {
+  background: #e1e6ed;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.settings-message {
+  margin-top: 20px;
+  padding: 12px 15px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.settings-message.error {
+  background: #fff0f0;
+  color: #c0392b;
+}
+
+.settings-message.success {
+  background: #edf9f0;
+  color: #237a3b;
+}
+
+.settings-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+  padding: 40px 0;
+}
+
+.settings-spin {
+  animation: settings-spin 1s linear infinite;
+}
+
+@keyframes settings-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 650px) {
+  .settings-page {
+    padding: 18px;
+  }
+
+  .settings-card {
+    padding: 20px;
+  }
+
+  .settings-form {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-profile-section {
+    align-items: flex-start;
+  }
+}
