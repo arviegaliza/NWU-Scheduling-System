@@ -14,7 +14,7 @@ const app = express();
 // Allowed frontend websites
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://nwuschedulingsystem.netlify.app",
+  "https://nwu-scheduling-system.vercel.app/",
   "https://frontend-571p-tau.vercel.app/",
   process.env.FRONTEND_URL,
 ]
