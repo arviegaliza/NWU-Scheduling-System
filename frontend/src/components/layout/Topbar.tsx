@@ -1,10 +1,11 @@
-
 import { useEffect, useState } from "react";
-import { Bell, Search, UserCircle } from "lucide-react";
+import { UserCircle } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
-const API_URL = "http://localhost:5000/api/admin-profile";
-const SERVER_URL = "http://localhost:5000";
+const SERVER_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const API_URL = `${SERVER_URL}/api/admin-profile`;
 
 interface AdminProfile {
   id: number;
@@ -50,12 +51,10 @@ export default function Topbar() {
   useEffect(() => {
     fetchAdminProfile();
 
-    // Refresh after profile is updated in Settings
     const handleProfileUpdate = () => {
       fetchAdminProfile();
     };
 
-    // Refresh when returning to the browser tab
     const handleWindowFocus = () => {
       fetchAdminProfile();
     };
@@ -98,10 +97,6 @@ export default function Topbar() {
       </div>
 
       <div className="topbar-actions">
-        
-
-      
-
         <div className="admin-profile">
           <div className="avatar">
             {profileImage && !imageError ? (
@@ -111,15 +106,17 @@ export default function Topbar() {
                 onError={() => setImageError(true)}
               />
             ) : (
-              <span>{profile ? initials : <UserCircle size={25} />}</span>
+              <span>
+                {profile ? initials : <UserCircle size={25} />}
+              </span>
             )}
           </div>
 
           <div className="admin-profile-details">
-  <strong>
-    {profile?.fullName || "Loading profile..."}
-  </strong>
-</div>  
+            <strong>
+              {profile?.fullName || "Loading profile..."}
+            </strong>
+          </div>
         </div>
       </div>
     </header>
