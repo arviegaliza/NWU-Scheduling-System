@@ -29,7 +29,10 @@ interface Schedule {
   status: "Pending" | "Approved" | "Completed" | "Cancelled";
 }
 
-const API_URL = "http://localhost:5000/api/schedules";
+const SERVER_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const API_URL = `${SERVER_URL}/api/schedules`;
 
 const Dashboard = () => {
   const navigate = useNavigate();

@@ -22,7 +22,10 @@ interface ResearchActivity {
 
 type ResearchFormData = Omit<ResearchActivity, "id">;
 
-const API_URL = "http://localhost:5000/api/research-activities";
+const SERVER_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const API_URL = `${SERVER_URL}/api/research-activities`;
 
 const emptyForm: ResearchFormData = {
   researchTitle: "",

@@ -15,7 +15,10 @@ import Schedule, {
 
 import "../styles/calendar.css";
 
-const API_URL = "http://localhost:5000/api/schedules";
+const SERVER_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const API_URL = `${SERVER_URL}/api/schedules`;
 
 export default function Calendar() {
   const [schedules, setSchedules] = useState<ScheduleData[]>([]);

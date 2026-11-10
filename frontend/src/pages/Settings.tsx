@@ -21,8 +21,10 @@ interface AdminProfile {
   profilePicture: string | null;
 }
 
-const API_URL = "http://localhost:5000/api/admin-profile";
-const SERVER_URL = "http://localhost:5000";
+const SERVER_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const API_URL = `${SERVER_URL}/api/admin-profile`;
 
 export default function Settings() {
   const [profile, setProfile] = useState<AdminProfile | null>(null);
