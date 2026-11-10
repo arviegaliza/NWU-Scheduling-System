@@ -7,7 +7,9 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
+
 import "./StaffCalendar.css";
 
 interface ScheduleRecord {
@@ -46,7 +48,6 @@ function dateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-// Handles date-only strings without shifting them to another timezone.
 function getScheduleDateKey(value: string): string {
   if (!value) return "";
 
@@ -92,8 +93,14 @@ export default function StaffCalendar() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
+  const [selectedDate, setSelectedDate] = useState(
+    dateKey(new Date())
+  );
 
+  // Controls the centered schedule modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Fetch schedules from the shared backend
   const fetchSchedules = async () => {
     try {
       setLoading(true);
@@ -124,6 +131,7 @@ export default function StaffCalendar() {
     fetchSchedules();
   }, []);
 
+  // Group schedules according to their dates
   const schedulesByDate = useMemo(() => {
     const grouped: Record<string, ScheduleRecord[]> = {};
 
@@ -142,6 +150,7 @@ export default function StaffCalendar() {
     return grouped;
   }, [schedules]);
 
+  // Generate calendar days
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -173,30 +182,63 @@ export default function StaffCalendar() {
   const upcomingCount = schedules.filter((schedule) => {
     const key = getScheduleDateKey(schedule.date);
 
-    return key >= todayKey && schedule.status?.toLowerCase() !== "cancelled";
+    return (
+      key >= todayKey &&
+      schedule.status?.toLowerCase() !== "cancelled"
+    );
   }).length;
 
   const completedCount = schedules.filter(
     (schedule) => schedule.status?.toLowerCase() === "completed"
   ).length;
 
+  // Change calendar month
   const changeMonth = (direction: number) => {
-    setCurrentMonth(
-      (previous) =>
-        new Date(
-          previous.getFullYear(),
-          previous.getMonth() + direction,
-          1
-        )
+    setCurrentMonth((previous) =>
+      new Date(
+        previous.getFullYear(),
+        previous.getMonth() + direction,
+        1
+      )
     );
   };
 
+  // Return to current month and date
   const showToday = () => {
     const today = new Date();
 
-    setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    setCurrentMonth(
+      new Date(today.getFullYear(), today.getMonth(), 1)
+    );
+
     setSelectedDate(dateKey(today));
   };
+
+  // Open modal when a calendar date is clicked
+  const handleDateClick = (key: string) => {
+    setSelectedDate(key);
+    setIsModalOpen(true);
+  };
+
+  // Close modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  // Close modal using Escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   const monthLabel = currentMonth.toLocaleDateString("en-PH", {
     month: "long",
@@ -205,6 +247,7 @@ export default function StaffCalendar() {
 
   return (
     <div className="staff-calendar">
+      {/* Calendar Header */}
       <div className="staff-calendar-header">
         <div>
           <h2>Research Schedule Calendar</h2>
@@ -217,12 +260,14 @@ export default function StaffCalendar() {
           className="staff-refresh-btn"
           onClick={fetchSchedules}
           disabled={loading}
+          type="button"
         >
           <RefreshCw size={16} />
           {loading ? "Loading..." : "Refresh"}
         </button>
       </div>
 
+      {/* Statistics */}
       <div className="staff-stats">
         <div className="staff-stat-card">
           <p>Total Schedules</p>
@@ -240,8 +285,13 @@ export default function StaffCalendar() {
         </div>
       </div>
 
-      {error && <div className="staff-error">{error}</div>}
+      {error && (
+        <div className="staff-error">
+          {error}
+        </div>
+      )}
 
+      {/* Monthly Calendar */}
       <div className="staff-calendar-panel">
         <div className="staff-month-toolbar">
           <div>
@@ -250,7 +300,11 @@ export default function StaffCalendar() {
           </div>
 
           <div className="staff-month-actions">
-            <button onClick={showToday} className="staff-today-btn">
+            <button
+              onClick={showToday}
+              className="staff-today-btn"
+              type="button"
+            >
               Today
             </button>
 
@@ -258,6 +312,7 @@ export default function StaffCalendar() {
               onClick={() => changeMonth(-1)}
               className="staff-month-nav"
               aria-label="Previous month"
+              type="button"
             >
               <ChevronLeft size={19} />
             </button>
@@ -266,6 +321,7 @@ export default function StaffCalendar() {
               onClick={() => changeMonth(1)}
               className="staff-month-nav"
               aria-label="Next month"
+              type="button"
             >
               <ChevronRight size={19} />
             </button>
@@ -301,7 +357,8 @@ export default function StaffCalendar() {
                 className={`staff-calendar-cell ${
                   isSelected ? "selected" : ""
                 } ${isToday ? "today" : ""}`}
-                onClick={() => setSelectedDate(key)}
+                onClick={() => handleDateClick(key)}
+                aria-label={`View schedules for ${formatDate(date)}`}
               >
                 <span className="staff-day-number">
                   {date.getDate()}
@@ -338,72 +395,136 @@ export default function StaffCalendar() {
           })}
         </div>
 
+        {/* Calendar Legend */}
         <div className="staff-calendar-legend">
-          <span><i className="legend-approved" /> Approved</span>
-          <span><i className="legend-pending" /> Pending</span>
-          <span><i className="legend-completed" /> Completed</span>
-          <span><i className="legend-cancelled" /> Cancelled</span>
-        </div>
-      </div>
-
-      <div className="staff-selected-schedules">
-        <div className="staff-schedule-heading">
-          <div>
-            <h3>Scheduled Activities</h3>
-            <p>{formatDate(new Date(`${selectedDate}T12:00:00`))}</p>
-          </div>
-
-          <span className="staff-selected-count">
-            {selectedSchedules.length}{" "}
-            {selectedSchedules.length === 1 ? "Schedule" : "Schedules"}
+          <span>
+            <i className="legend-approved" /> Approved
+          </span>
+          <span>
+            <i className="legend-pending" /> Pending
+          </span>
+          <span>
+            <i className="legend-completed" /> Completed
+          </span>
+          <span>
+            <i className="legend-cancelled" /> Cancelled
           </span>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="staff-empty">
-            Loading schedules...
-          </div>
-        ) : selectedSchedules.length === 0 ? (
-          <div className="staff-empty">
-            <CalendarDays size={36} />
-            <p>No research activities scheduled for this date.</p>
-          </div>
-        ) : (
-          selectedSchedules.map((schedule) => (
-            <div className="staff-schedule-item" key={schedule.id}>
-              <div className="staff-schedule-top">
-                <div>
-                  <h4>{schedule.researchTitle}</h4>
-                  <p className="staff-researcher">
-                    {schedule.researcher}
-                  </p>
-                  <p className="staff-activity">
-                    {schedule.activity}
+      {/* Centered Schedule Modal */}
+      {isModalOpen && (
+        <div
+          className="staff-modal-overlay"
+          onClick={closeModal}
+        >
+          <div
+            className="staff-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="staff-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="staff-modal-header">
+              <div>
+                <h3 id="staff-modal-title">
+                  Scheduled Activities
+                </h3>
+                <p>
+                  {formatDate(
+                    new Date(`${selectedDate}T12:00:00`)
+                  )}
+                </p>
+              </div>
+
+              <button
+                className="staff-modal-close"
+                onClick={closeModal}
+                type="button"
+                aria-label="Close modal"
+              >
+                <X size={21} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="staff-modal-body">
+              {loading ? (
+                <div className="staff-empty">
+                  Loading schedules...
+                </div>
+              ) : selectedSchedules.length === 0 ? (
+                <div className="staff-empty">
+                  <CalendarDays size={36} />
+                  <p>
+                    No research activities scheduled for this date.
                   </p>
                 </div>
+              ) : (
+                selectedSchedules.map((schedule) => (
+                  <div
+                    className="staff-schedule-item"
+                    key={schedule.id}
+                  >
+                    <div className="staff-schedule-top">
+                      <div>
+                        <h4>{schedule.researchTitle}</h4>
 
-                <span
-                  className={`staff-status ${getStatusClass(schedule.status)}`}
-                >
-                  {schedule.status}
-                </span>
-              </div>
+                        <p className="staff-researcher">
+                          {schedule.researcher}
+                        </p>
 
-              <div className="staff-schedule-details">
-                <span className="staff-detail">
-                  <Clock size={16} />
-                  {schedule.startTime} - {schedule.endTime}
-                </span>
+                        <p className="staff-activity">
+                          {schedule.activity}
+                        </p>
+                      </div>
 
-                <span className="staff-detail">
-                  <MapPin size={16} />
-                  {schedule.venue}
-                </span>
-              </div>
+                      <span
+                        className={`staff-status ${getStatusClass(
+                          schedule.status
+                        )}`}
+                      >
+                        {schedule.status}
+                      </span>
+                    </div>
+
+                    <div className="staff-schedule-details">
+                      <span className="staff-detail">
+                        <Clock size={16} />
+                        {schedule.startTime} - {schedule.endTime}
+                      </span>
+
+                      <span className="staff-detail">
+                        <MapPin size={16} />
+                        {schedule.venue}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          ))
-        )}
-      </div>
+
+            {/* Modal Footer */}
+            <div className="staff-modal-footer">
+              <span>
+                {selectedSchedules.length}{" "}
+                {selectedSchedules.length === 1
+                  ? "Schedule"
+                  : "Schedules"}
+              </span>
+
+              <button
+                onClick={closeModal}
+                className="staff-modal-done"
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

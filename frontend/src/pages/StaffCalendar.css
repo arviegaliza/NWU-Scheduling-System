@@ -595,6 +595,154 @@
   }
 }
 
+/* =====================================
+   CENTERED STAFF CALENDAR MODAL
+===================================== */
+
+.staff-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(3px);
+  box-sizing: border-box;
+}
+
+.staff-modal {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  animation: staffModalEnter 0.2s ease-out;
+}
+
+@keyframes staffModalEnter {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.staff-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 22px 25px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.staff-modal-header h3 {
+  margin: 0;
+  color: #102746;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.staff-modal-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.staff-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  cursor: pointer;
+}
+
+.staff-modal-close:hover {
+  background: #e2e8f0;
+  color: #102746;
+}
+
+.staff-modal-body {
+  padding: 22px 25px;
+  overflow-y: auto;
+  min-height: 120px;
+}
+
+.staff-modal-body .staff-schedule-item {
+  margin-bottom: 14px;
+}
+
+.staff-modal-body .staff-schedule-item:last-child {
+  margin-bottom: 0;
+}
+
+.staff-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 15px 25px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.staff-modal-done {
+  padding: 10px 25px;
+  border: none;
+  border-radius: 8px;
+  background: #102746;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.staff-modal-done:hover {
+  background: #1d416b;
+}
+
+@media (max-width: 600px) {
+  .staff-modal-overlay {
+    padding: 12px;
+  }
+
+  .staff-modal {
+    max-height: 90vh;
+  }
+
+  .staff-modal-header,
+  .staff-modal-body {
+    padding: 18px;
+  }
+
+  .staff-modal-footer {
+    padding: 14px 18px;
+  }
+
+  .staff-schedule-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* =========================================
    SMALL MOBILE SCREENS
 ========================================= */
