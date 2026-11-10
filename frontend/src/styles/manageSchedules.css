@@ -272,3 +272,29 @@
     transform: rotate(360deg);
   }
 }
+
+
+.time-select-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.85fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.time-select-group select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f2937;
+  font: inherit;
+}
+
+.time-select-group select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+

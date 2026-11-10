@@ -1,3 +1,4 @@
+
 const { Pool } = require("pg");
 require("dotenv").config();
 
@@ -7,8 +8,6 @@ const pool = new Pool({
     rejectUnauthorized: false,
   },
 });
-
-module.exports = pool;
 
 // Test database connection
 pool.connect()

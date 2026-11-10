@@ -9,9 +9,13 @@ const scheduleRoutes = require("./routes/scheduleRoutes");
 const researchActivityRoutes = require("./routes/researchActivityRoutes");
 const adminProfileRoutes = require("./routes/adminProfileRoutes");
 
+// Import automatic schedule status service
+const {
+  startScheduleStatusScheduler,
+} = require("./services/scheduleStatusService");
+
 const app = express();
 
-// Allowed frontend websites
 const allowedOrigins = [
   "http://localhost:5173",
   "https://nwu-scheduling-system.vercel.app",
@@ -21,7 +25,7 @@ const allowedOrigins = [
   .filter(Boolean)
   .map((origin) => origin.trim().replace(/\/+$/, ""));
 
-// CORS configuration
+// CORS
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -44,10 +48,8 @@ app.use(
   })
 );
 
-// Middleware
 app.use(express.json());
 
-// Serve uploaded profile pictures
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "../uploads"))
@@ -58,14 +60,14 @@ app.use("/api/schedules", scheduleRoutes);
 app.use("/api/research-activities", researchActivityRoutes);
 app.use("/api/admin-profile", adminProfileRoutes);
 
-// Root route
+// API health check
 app.get("/", (req, res) => {
   res.json({
     message: "Research Scheduling API is running.",
   });
 });
 
-// Handle unknown API routes
+// Not found
 app.use("/api", (req, res) => {
   res.status(404).json({
     message: "API endpoint not found.",
@@ -89,10 +91,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log("Allowed frontend origins:", allowedOrigins);
+
+  // Start automatic schedule status updates.
+  startScheduleStatusScheduler();
 });
