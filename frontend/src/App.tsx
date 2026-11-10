@@ -29,24 +29,19 @@ const APP_MODE = import.meta.env.VITE_APP_MODE || "admin";
 // Staff Layout
 function StaffLayout() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-[#102746] text-white px-6 py-4 shadow-md">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-xl font-bold">
-            NWU Research Scheduling System
-          </h1>
-
-          <p className="text-sm text-gray-300">
-            Staff Calendar Portal
-          </p>
+    <div className="staff-layout">
+      <header className="staff-header">
+        <div className="staff-header-inner">
+          <h1>NWU Research Scheduling System</h1>
+          <p>Staff Calendar Portal</p>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-4 md:p-6">
+      <main className="staff-main">
         <Outlet />
       </main>
 
-      <footer className="text-center text-sm text-gray-500 py-5">
+      <footer className="staff-footer">
         Northwestern University | Research Scheduling System
       </footer>
     </div>
@@ -58,40 +53,13 @@ function AdminRoutes() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
-
-        <Route
-          path="/calendar"
-          element={<Calendar />}
-        />
-
-        <Route
-          path="/schedules"
-          element={<ManageSchedules />}
-        />
-
-        <Route
-          path="/research"
-          element={<ResearchActivities />}
-        />
-
-        <Route
-          path="/panel-members"
-          element={<PanelMembers />}
-        />
-
-        <Route
-          path="/reports"
-          element={<Reports />}
-        />
-
-        <Route
-          path="/settings"
-          element={<Settings />}
-        />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/schedules" element={<ManageSchedules />} />
+        <Route path="/research" element={<ResearchActivities />} />
+        <Route path="/panel-members" element={<PanelMembers />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       <Route
@@ -99,10 +67,7 @@ function AdminRoutes() {
         element={<Navigate to="/dashboard" replace />}
       />
 
-      <Route
-        path="*"
-        element={<NotFound />}
-      />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
@@ -112,15 +77,8 @@ function StaffRoutes() {
   return (
     <Routes>
       <Route element={<StaffLayout />}>
-        <Route
-          path="/dashboard"
-          element={<StaffCalendar />}
-        />
-
-        <Route
-          path="/calendar"
-          element={<StaffCalendar />}
-        />
+        <Route path="/dashboard" element={<StaffCalendar />} />
+        <Route path="/calendar" element={<StaffCalendar />} />
       </Route>
 
       <Route
