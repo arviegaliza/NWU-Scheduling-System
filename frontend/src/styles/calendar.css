@@ -323,3 +323,14 @@
     padding: 16px;
   }
 }
+
+/* ONGOING STATUS LEGEND */
+.legend-ongoing {
+  background-color: #8b5cf6;
+}
+
+/* ONGOING STATUS IN SCHEDULE DETAILS */
+.status-ongoing {
+  color: #8b5cf6;
+  font-weight: 700;
+}

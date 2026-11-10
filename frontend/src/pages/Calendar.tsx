@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 
 import FullCalendar from "@fullcalendar/react";
@@ -12,6 +12,8 @@ import type { EventInput, EventClickArg } from "@fullcalendar/core";
 import Schedule, {
   type ScheduleData,
 } from "../components/schedules/ScheduleForm";
+
+import { socket } from "../socket";
 
 import "../styles/calendar.css";
 
@@ -32,9 +34,12 @@ export default function Calendar() {
     useState<ScheduleData | null>(null);
 
   // FETCH SCHEDULES
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
+
       setError("");
 
       const response = await fetch(API_URL);
@@ -44,19 +49,50 @@ export default function Calendar() {
       }
 
       const data: ScheduleData[] = await response.json();
+
       setSchedules(data);
+
+      // Keep the selected schedule details synchronized.
+      setSelectedSchedule((previous) => {
+        if (!previous) return null;
+
+        const updatedSchedule = data.find(
+          (schedule) => schedule.id === previous.id
+        );
+
+        return updatedSchedule ?? null;
+      });
+
     } catch (err) {
+      console.error("Fetch schedules error:", err);
+
       setError(
-        err instanceof Error ? err.message : "Something went wrong."
+        err instanceof Error
+          ? err.message
+          : "Something went wrong."
       );
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
+  // INITIAL FETCH AND REAL-TIME SOCKET.IO UPDATES
   useEffect(() => {
     fetchSchedules();
-  }, []);
+
+    const handleScheduleUpdate = () => {
+      console.log("Real-time schedule update received.");
+      fetchSchedules(false);
+    };
+
+    socket.on("schedules:updated", handleScheduleUpdate);
+
+    return () => {
+      socket.off("schedules:updated", handleScheduleUpdate);
+    };
+  }, [fetchSchedules]);
 
   // ADD NEW SCHEDULE
   const handleAddSchedule = async (schedule: ScheduleData) => {
@@ -74,10 +110,13 @@ export default function Calendar() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to save schedule.");
+        throw new Error(
+          result.message || "Failed to save schedule."
+        );
       }
 
-      await fetchSchedules();
+      // Refresh schedules after successful saving.
+      await fetchSchedules(false);
 
       setShowForm(false);
 
@@ -97,32 +136,36 @@ export default function Calendar() {
   };
 
   // CONVERT DATABASE RECORDS INTO CALENDAR EVENTS
-  const events: EventInput[] = schedules.map((schedule) => {
+  const events: EventInput[] = useMemo(() => {
     const colors: Record<string, string> = {
       Pending: "#f59e0b",
       Approved: "#2563eb",
+      Ongoing: "#8b5cf6",
       Completed: "#16a34a",
       Cancelled: "#dc2626",
     };
 
-    const color = colors[schedule.status] ?? "#64748b";
+    return schedules.map((schedule) => {
+      const color = colors[schedule.status] ?? "#64748b";
 
-    return {
-      id: String(schedule.id),
-      title: `${schedule.activity} - ${schedule.researcher}`,
-      start: `${schedule.date}T${schedule.startTime}`,
-      end: `${schedule.date}T${schedule.endTime}`,
-      backgroundColor: color,
-      borderColor: color,
-      extendedProps: {
-        schedule,
-      },
-    };
-  });
+      return {
+        id: String(schedule.id),
+        title: `${schedule.activity} - ${schedule.researcher}`,
+        start: `${schedule.date}T${schedule.startTime}`,
+        end: `${schedule.date}T${schedule.endTime}`,
+        backgroundColor: color,
+        borderColor: color,
+        extendedProps: {
+          schedule,
+        },
+      };
+    });
+  }, [schedules]);
 
   // VIEW SCHEDULE DETAILS
   const handleEventClick = (info: EventClickArg) => {
     const schedule = info.event.extendedProps.schedule as ScheduleData;
+
     setSelectedSchedule(schedule);
   };
 
@@ -141,7 +184,7 @@ export default function Calendar() {
         <div className="calendar-header-actions">
           <button
             className="calendar-refresh"
-            onClick={fetchSchedules}
+            onClick={() => fetchSchedules()}
             disabled={loading}
           >
             <RefreshCw size={17} />
@@ -181,6 +224,13 @@ export default function Calendar() {
         </div>
 
         <div className="calendar-stat">
+          <span>Ongoing</span>
+          <strong>
+            {schedules.filter((s) => s.status === "Ongoing").length}
+          </strong>
+        </div>
+
+        <div className="calendar-stat">
           <span>Completed</span>
           <strong>
             {schedules.filter((s) => s.status === "Completed").length}
@@ -191,10 +241,25 @@ export default function Calendar() {
 
       {/* STATUS LEGEND */}
       <div className="calendar-legend">
-        <span><i className="legend-approved" /> Approved</span>
-        <span><i className="legend-pending" /> Pending</span>
-        <span><i className="legend-completed" /> Completed</span>
-        <span><i className="legend-cancelled" /> Cancelled</span>
+        <span>
+          <i className="legend-approved" /> Approved
+        </span>
+
+        <span>
+          <i className="legend-pending" /> Pending
+        </span>
+
+        <span>
+          <i className="legend-ongoing" /> Ongoing
+        </span>
+
+        <span>
+          <i className="legend-completed" /> Completed
+        </span>
+
+        <span>
+          <i className="legend-cancelled" /> Cancelled
+        </span>
       </div>
 
       {/* CALENDAR */}
@@ -207,7 +272,8 @@ export default function Calendar() {
         ) : error ? (
           <div className="calendar-message error">
             {error}
-            <button onClick={fetchSchedules}>
+
+            <button onClick={() => fetchSchedules()}>
               Try Again
             </button>
           </div>
@@ -281,6 +347,7 @@ export default function Calendar() {
                 <span className="modal-label">
                   RESEARCH SCHEDULE
                 </span>
+
                 <h2>{selectedSchedule.activity}</h2>
               </div>
 
@@ -323,12 +390,15 @@ export default function Calendar() {
 
               <div>
                 <span>Panel Chair</span>
-                <strong>{selectedSchedule.panelChair}</strong>
+                <strong>{selectedSchedule.panelChair || "Not assigned"}</strong>
               </div>
 
               <div>
                 <span>Status</span>
-                <strong className={`status-${selectedSchedule.status.toLowerCase()}`}>
+
+                <strong
+                  className={`status-${selectedSchedule.status.toLowerCase()}`}
+                >
                   {selectedSchedule.status}
                 </strong>
               </div>
