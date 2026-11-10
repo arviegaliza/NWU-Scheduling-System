@@ -127,7 +127,7 @@
 }
 
 /* =========================================
-   CALENDAR AND SCHEDULE CONTAINERS
+   CALENDAR CONTAINERS
 ========================================= */
 
 .staff-calendar-panel,
@@ -517,6 +517,300 @@
 }
 
 /* =========================================
+   MODERN CENTERED SCHEDULE ACTIVITIES MODAL
+========================================= */
+
+.staff-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 20, 38, 0.72);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  box-sizing: border-box;
+  animation: staffOverlayFade 0.2s ease;
+}
+
+.staff-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 760px;
+  max-height: min(850px, 88vh);
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.28);
+  animation: staffModalEnter 0.25s ease-out;
+}
+
+/* MODAL ANIMATIONS */
+
+@keyframes staffOverlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes staffModalEnter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* MODAL HEADER */
+
+.staff-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 25px 30px;
+  background: linear-gradient(135deg, #102746 0%, #193b64 100%);
+  border-bottom: 3px solid #d5a84c;
+}
+
+.staff-modal-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.4px;
+}
+
+.staff-modal-header p {
+  margin: 7px 0 0;
+  color: #dbe7f5;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.staff-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.staff-modal-close:hover {
+  background: #ffffff;
+  color: #102746;
+  transform: rotate(90deg);
+}
+
+/* MODAL BODY */
+
+.staff-modal-body {
+  padding: 26px 30px;
+  overflow-y: auto;
+  min-height: 140px;
+  background: #f8fafc;
+  overscroll-behavior: contain;
+}
+
+.staff-modal-body::-webkit-scrollbar {
+  width: 7px;
+}
+
+.staff-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.staff-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.staff-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* MODAL SCHEDULE CARDS */
+
+.staff-modal-body .staff-schedule-item {
+  position: relative;
+  margin-bottom: 16px;
+  padding: 22px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #2563eb;
+  border-radius: 13px;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+}
+
+.staff-modal-body .staff-schedule-item:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 7px 18px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+.staff-modal-body .staff-schedule-item:last-child {
+  margin-bottom: 0;
+}
+
+.staff-modal-body .staff-schedule-item h4 {
+  color: #102746;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.staff-modal-body .staff-researcher {
+  color: #475569;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.staff-modal-body .staff-activity {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.staff-modal-body .staff-schedule-top {
+  align-items: flex-start;
+  gap: 15px;
+}
+
+/* MODAL SCHEDULE DETAILS */
+
+.staff-modal-body .staff-schedule-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 19px;
+  padding-top: 17px;
+  border-top: 1px solid #edf0f4;
+}
+
+.staff-modal-body .staff-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.5;
+  min-width: 0;
+}
+
+.staff-modal-body .staff-detail svg {
+  width: 16px;
+  height: 16px;
+  color: #2563eb;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* MODAL STATUS BADGES */
+
+.staff-modal-body .staff-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.staff-modal-body .staff-status.approved {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.staff-modal-body .staff-status.pending {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.staff-modal-body .staff-status.completed {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.staff-modal-body .staff-status.cancelled {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+/* MODAL EMPTY STATE */
+
+.staff-modal-body .staff-empty {
+  min-height: 220px;
+  padding: 35px 20px;
+  color: #64748b;
+}
+
+.staff-modal-body .staff-empty p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* MODAL FOOTER */
+
+.staff-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 17px 30px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.staff-modal-done {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 11px 22px;
+  border: none;
+  border-radius: 9px;
+  background: #102746;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.staff-modal-done:hover {
+  background: #1d416b;
+  box-shadow: 0 4px 12px rgba(16, 39, 70, 0.2);
+  transform: translateY(-1px);
+}
+
+/* =========================================
    TABLET RESPONSIVENESS
 ========================================= */
 
@@ -593,153 +887,27 @@
     flex-direction: column;
     gap: 10px;
   }
-}
-
-/* =====================================
-   CENTERED STAFF CALENDAR MODAL
-===================================== */
-
-.staff-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(3px);
-  box-sizing: border-box;
-}
-
-.staff-modal {
-  position: relative;
-  width: 100%;
-  max-width: 680px;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-  animation: staffModalEnter 0.2s ease-out;
-}
-
-@keyframes staffModalEnter {
-  from {
-    opacity: 0;
-    transform: translateY(15px) scale(0.97);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.staff-modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 15px;
-  padding: 22px 25px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.staff-modal-header h3 {
-  margin: 0;
-  color: #102746;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.staff-modal-header p {
-  margin: 6px 0 0;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.staff-modal-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 50%;
-  background: #f1f5f9;
-  color: #475569;
-  cursor: pointer;
-}
-
-.staff-modal-close:hover {
-  background: #e2e8f0;
-  color: #102746;
-}
-
-.staff-modal-body {
-  padding: 22px 25px;
-  overflow-y: auto;
-  min-height: 120px;
-}
-
-.staff-modal-body .staff-schedule-item {
-  margin-bottom: 14px;
-}
-
-.staff-modal-body .staff-schedule-item:last-child {
-  margin-bottom: 0;
-}
-
-.staff-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  padding: 15px 25px;
-  border-top: 1px solid #e5e7eb;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.staff-modal-done {
-  padding: 10px 25px;
-  border: none;
-  border-radius: 8px;
-  background: #102746;
-  color: #ffffff;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.staff-modal-done:hover {
-  background: #1d416b;
-}
-
-@media (max-width: 600px) {
-  .staff-modal-overlay {
-    padding: 12px;
-  }
 
   .staff-modal {
+    max-width: 100%;
     max-height: 90vh;
+    border-radius: 16px;
   }
 
-  .staff-modal-header,
+  .staff-modal-header {
+    padding: 20px;
+  }
+
+  .staff-modal-header h3 {
+    font-size: 18px;
+  }
+
   .staff-modal-body {
     padding: 18px;
   }
 
   .staff-modal-footer {
-    padding: 14px 18px;
-  }
-
-  .staff-schedule-top {
-    flex-direction: column;
-    align-items: flex-start;
+    padding: 15px 18px;
   }
 }
 
@@ -747,7 +915,7 @@
    SMALL MOBILE SCREENS
 ========================================= */
 
-@media (max-width: 420px) {
+@media (max-width: 520px) {
   .staff-main {
     padding: 15px 8px;
   }
@@ -775,5 +943,73 @@
 
   .staff-month-toolbar h3 {
     font-size: 18px;
+  }
+
+  .staff-modal-overlay {
+    padding: 10px;
+  }
+
+  .staff-modal {
+    max-height: 92vh;
+    border-radius: 14px;
+  }
+
+  .staff-modal-header {
+    padding: 18px;
+  }
+
+  .staff-modal-header h3 {
+    font-size: 16px;
+  }
+
+  .staff-modal-body {
+    padding: 14px;
+  }
+
+  .staff-modal-body .staff-schedule-item {
+    padding: 17px;
+  }
+
+  .staff-modal-body .staff-schedule-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .staff-modal-body .staff-schedule-details {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .staff-modal-footer {
+    padding: 13px 15px;
+  }
+
+  .staff-modal-done {
+    min-width: 90px;
+    padding: 10px 16px;
+  }
+}
+
+/* =========================================
+   ACCESSIBILITY
+========================================= */
+
+.staff-calendar-cell:focus-visible,
+.staff-refresh-btn:focus-visible,
+.staff-month-nav:focus-visible,
+.staff-today-btn:focus-visible,
+.staff-modal-close:focus-visible,
+.staff-modal-done:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-modal,
+  .staff-modal-overlay,
+  .staff-modal-close,
+  .staff-modal-done {
+    animation: none;
+    transition: none;
   }
 }
