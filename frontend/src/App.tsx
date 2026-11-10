@@ -20,7 +20,10 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
-// Determine which portal is being deployed
+// Staff Page
+import StaffCalendar from "./pages/StaffCalendar";
+
+// Deployment mode
 const APP_MODE = import.meta.env.VITE_APP_MODE || "admin";
 
 // Staff Layout
@@ -32,6 +35,7 @@ function StaffLayout() {
           <h1 className="text-xl font-bold">
             NWU Research Scheduling System
           </h1>
+
           <p className="text-sm text-gray-300">
             Staff Calendar Portal
           </p>
@@ -54,13 +58,40 @@ function AdminRoutes() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/calendar" element={<Calendar />} />
-        <Route path="/schedules" element={<ManageSchedules />} />
-        <Route path="/research" element={<ResearchActivities />} />
-        <Route path="/panel-members" element={<PanelMembers />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
+
+        <Route
+          path="/calendar"
+          element={<Calendar />}
+        />
+
+        <Route
+          path="/schedules"
+          element={<ManageSchedules />}
+        />
+
+        <Route
+          path="/research"
+          element={<ResearchActivities />}
+        />
+
+        <Route
+          path="/panel-members"
+          element={<PanelMembers />}
+        />
+
+        <Route
+          path="/reports"
+          element={<Reports />}
+        />
+
+        <Route
+          path="/settings"
+          element={<Settings />}
+        />
       </Route>
 
       <Route
@@ -68,18 +99,28 @@ function AdminRoutes() {
         element={<Navigate to="/dashboard" replace />}
       />
 
-      <Route path="*" element={<NotFound />} />
+      <Route
+        path="*"
+        element={<NotFound />}
+      />
     </Routes>
   );
 }
 
-// Staff Portal Routes
+// Staff Portal Routes - READ ONLY
 function StaffRoutes() {
   return (
     <Routes>
       <Route element={<StaffLayout />}>
-        <Route path="/dashboard" element={<Calendar />} />
-        <Route path="/calendar" element={<Calendar />} />
+        <Route
+          path="/dashboard"
+          element={<StaffCalendar />}
+        />
+
+        <Route
+          path="/calendar"
+          element={<StaffCalendar />}
+        />
       </Route>
 
       <Route
