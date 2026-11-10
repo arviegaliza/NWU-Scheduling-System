@@ -1,8 +1,11 @@
+
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import type { EventInput, DateClickArg } from "@fullcalendar/core";
+import interactionPlugin, {
+  type DateClickArg,
+} from "@fullcalendar/interaction";
+import type { EventInput } from "@fullcalendar/core";
 
 interface CalendarViewProps {
   events: EventInput[];
