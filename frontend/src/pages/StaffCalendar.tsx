@@ -1,10 +1,12 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   RefreshCw,
   CalendarDays,
   Clock,
   MapPin,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import "./StaffCalendar.css";
 
@@ -26,10 +28,71 @@ const SERVER_URL = (
 
 const API_URL = `${SERVER_URL}/api/schedules`;
 
+const WEEKDAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+function dateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+// Handles date-only strings without shifting them to another timezone.
+function getScheduleDateKey(value: string): string {
+  if (!value) return "";
+
+  const datePart = value.slice(0, 10);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return datePart;
+  }
+
+  const parsed = new Date(value);
+
+  return Number.isNaN(parsed.getTime()) ? "" : dateKey(parsed);
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("en-PH", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getStatusClass(status: string): string {
+  switch (status?.toLowerCase()) {
+    case "completed":
+      return "completed";
+    case "approved":
+      return "approved";
+    case "cancelled":
+      return "cancelled";
+    default:
+      return "pending";
+  }
+}
+
 export default function StaffCalendar() {
   const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
+  const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
 
   const fetchSchedules = async () => {
     try {
@@ -61,49 +124,84 @@ export default function StaffCalendar() {
     fetchSchedules();
   }, []);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const schedulesByDate = useMemo(() => {
+    const grouped: Record<string, ScheduleRecord[]> = {};
+
+    schedules.forEach((schedule) => {
+      const key = getScheduleDateKey(schedule.date);
+
+      if (!key) return;
+
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+
+      grouped[key].push(schedule);
+    });
+
+    return grouped;
+  }, [schedules]);
+
+  const calendarDays = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const cells: Array<Date | null> = [];
+
+    for (let i = 0; i < firstDay.getDay(); i++) {
+      cells.push(null);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      cells.push(new Date(year, month, day));
+    }
+
+    while (cells.length % 7 !== 0) {
+      cells.push(null);
+    }
+
+    return cells;
+  }, [currentMonth]);
+
+  const selectedSchedules = schedulesByDate[selectedDate] || [];
+
+  const todayKey = dateKey(new Date());
 
   const upcomingCount = schedules.filter((schedule) => {
-    const scheduleDate = new Date(schedule.date);
-    return !Number.isNaN(scheduleDate.getTime()) &&
-      scheduleDate >= today &&
-      schedule.status !== "Cancelled";
+    const key = getScheduleDateKey(schedule.date);
+
+    return key >= todayKey && schedule.status?.toLowerCase() !== "cancelled";
   }).length;
 
   const completedCount = schedules.filter(
     (schedule) => schedule.status?.toLowerCase() === "completed"
   ).length;
 
-  const sortedSchedules = [...schedules].sort(
-    (a, b) =>
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-
-  const getStatusClass = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "completed":
-        return "completed";
-      case "approved":
-        return "approved";
-      case "cancelled":
-        return "cancelled";
-      default:
-        return "pending";
-    }
+  const changeMonth = (direction: number) => {
+    setCurrentMonth(
+      (previous) =>
+        new Date(
+          previous.getFullYear(),
+          previous.getMonth() + direction,
+          1
+        )
+    );
   };
 
-  const formatDate = (date: string) => {
-    const parsedDate = new Date(date);
+  const showToday = () => {
+    const today = new Date();
 
-    if (Number.isNaN(parsedDate.getTime())) return date;
-
-    return parsedDate.toLocaleDateString("en-PH", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    setSelectedDate(dateKey(today));
   };
+
+  const monthLabel = currentMonth.toLocaleDateString("en-PH", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="staff-calendar">
@@ -116,9 +214,9 @@ export default function StaffCalendar() {
         </div>
 
         <button
+          className="staff-refresh-btn"
           onClick={fetchSchedules}
           disabled={loading}
-          className="staff-refresh-btn"
         >
           <RefreshCw size={16} />
           {loading ? "Loading..." : "Refresh"}
@@ -142,75 +240,168 @@ export default function StaffCalendar() {
         </div>
       </div>
 
-      {error && (
-        <div className="staff-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="staff-error">{error}</div>}
 
-      <div className="staff-schedule-container">
+      <div className="staff-calendar-panel">
+        <div className="staff-month-toolbar">
+          <div>
+            <h3>{monthLabel}</h3>
+            <p>University-wide research activities</p>
+          </div>
+
+          <div className="staff-month-actions">
+            <button onClick={showToday} className="staff-today-btn">
+              Today
+            </button>
+
+            <button
+              onClick={() => changeMonth(-1)}
+              className="staff-month-nav"
+              aria-label="Previous month"
+            >
+              <ChevronLeft size={19} />
+            </button>
+
+            <button
+              onClick={() => changeMonth(1)}
+              className="staff-month-nav"
+              aria-label="Next month"
+            >
+              <ChevronRight size={19} />
+            </button>
+          </div>
+        </div>
+
+        <div className="staff-calendar-grid">
+          {WEEKDAYS.map((day) => (
+            <div className="staff-weekday" key={day}>
+              {day}
+            </div>
+          ))}
+
+          {calendarDays.map((date, index) => {
+            if (!date) {
+              return (
+                <div
+                  className="staff-calendar-cell empty"
+                  key={`empty-${index}`}
+                />
+              );
+            }
+
+            const key = dateKey(date);
+            const daySchedules = schedulesByDate[key] || [];
+            const isToday = key === todayKey;
+            const isSelected = key === selectedDate;
+
+            return (
+              <button
+                type="button"
+                key={key}
+                className={`staff-calendar-cell ${
+                  isSelected ? "selected" : ""
+                } ${isToday ? "today" : ""}`}
+                onClick={() => setSelectedDate(key)}
+              >
+                <span className="staff-day-number">
+                  {date.getDate()}
+                </span>
+
+                <div className="staff-day-events">
+                  {daySchedules.slice(0, 2).map((schedule) => (
+                    <span
+                      key={schedule.id}
+                      className={`staff-calendar-event ${getStatusClass(
+                        schedule.status
+                      )}`}
+                      title={schedule.researchTitle}
+                    >
+                      {schedule.researchTitle}
+                    </span>
+                  ))}
+
+                  {daySchedules.length > 2 && (
+                    <span className="staff-more-events">
+                      +{daySchedules.length - 2} more
+                    </span>
+                  )}
+                </div>
+
+                {daySchedules.length > 0 && (
+                  <span className="staff-event-count">
+                    {daySchedules.length}{" "}
+                    {daySchedules.length === 1 ? "event" : "events"}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="staff-calendar-legend">
+          <span><i className="legend-approved" /> Approved</span>
+          <span><i className="legend-pending" /> Pending</span>
+          <span><i className="legend-completed" /> Completed</span>
+          <span><i className="legend-cancelled" /> Cancelled</span>
+        </div>
+      </div>
+
+      <div className="staff-selected-schedules">
         <div className="staff-schedule-heading">
-          <h3>University Research Schedules</h3>
-          <p>Read-only schedule information for staff.</p>
+          <div>
+            <h3>Scheduled Activities</h3>
+            <p>{formatDate(new Date(`${selectedDate}T12:00:00`))}</p>
+          </div>
+
+          <span className="staff-selected-count">
+            {selectedSchedules.length}{" "}
+            {selectedSchedules.length === 1 ? "Schedule" : "Schedules"}
+          </span>
         </div>
 
         {loading ? (
-          <div className="staff-loading">
+          <div className="staff-empty">
             Loading schedules...
           </div>
-        ) : sortedSchedules.length === 0 ? (
+        ) : selectedSchedules.length === 0 ? (
           <div className="staff-empty">
-            <CalendarDays size={38} />
-            <p>No schedules available.</p>
+            <CalendarDays size={36} />
+            <p>No research activities scheduled for this date.</p>
           </div>
         ) : (
-          <div>
-            {sortedSchedules.map((schedule) => (
-              <div
-                key={schedule.id}
-                className="staff-schedule-item"
-              >
-                <div className="staff-schedule-top">
-                  <div>
-                    <h4>{schedule.researchTitle}</h4>
-
-                    <p className="staff-researcher">
-                      {schedule.researcher}
-                    </p>
-
-                    <p className="staff-activity">
-                      {schedule.activity}
-                    </p>
-                  </div>
-
-                  <span
-                    className={`staff-status ${getStatusClass(
-                      schedule.status
-                    )}`}
-                  >
-                    {schedule.status}
-                  </span>
+          selectedSchedules.map((schedule) => (
+            <div className="staff-schedule-item" key={schedule.id}>
+              <div className="staff-schedule-top">
+                <div>
+                  <h4>{schedule.researchTitle}</h4>
+                  <p className="staff-researcher">
+                    {schedule.researcher}
+                  </p>
+                  <p className="staff-activity">
+                    {schedule.activity}
+                  </p>
                 </div>
 
-                <div className="staff-schedule-details">
-                  <span className="staff-detail">
-                    <CalendarDays size={16} />
-                    {formatDate(schedule.date)}
-                  </span>
-
-                  <span className="staff-detail">
-                    <Clock size={16} />
-                    {schedule.startTime} - {schedule.endTime}
-                  </span>
-
-                  <span className="staff-detail">
-                    <MapPin size={16} />
-                    {schedule.venue}
-                  </span>
-                </div>
+                <span
+                  className={`staff-status ${getStatusClass(schedule.status)}`}
+                >
+                  {schedule.status}
+                </span>
               </div>
-            ))}
-          </div>
+
+              <div className="staff-schedule-details">
+                <span className="staff-detail">
+                  <Clock size={16} />
+                  {schedule.startTime} - {schedule.endTime}
+                </span>
+
+                <span className="staff-detail">
+                  <MapPin size={16} />
+                  {schedule.venue}
+                </span>
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>
