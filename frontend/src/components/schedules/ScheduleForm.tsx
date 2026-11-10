@@ -40,49 +40,29 @@ const emptyForm: ScheduleData = {
   status: "Pending",
 };
 
-// Converts 24-hour HH:mm to a display-friendly 12-hour time.
-function to12Hour(value: string) {
-  if (!value) {
-    return { hour: "", minute: "", period: "AM" };
-  }
+// FORMAT TIME FOR DISPLAY
+function formatTime(time: string) {
+  if (!time) return "";
 
-  const [hourText, minute] = value.split(":");
-  const hour24 = Number(hourText);
+  const [hours, minutes] = time.split(":");
+  const hour24 = Number(hours);
 
   if (
     !Number.isInteger(hour24) ||
     hour24 < 0 ||
     hour24 > 23 ||
-    !minute
+    !minutes
   ) {
-    return { hour: "", minute: "", period: "AM" };
+    return "";
   }
 
   const period = hour24 >= 12 ? "PM" : "AM";
   const hour12 = hour24 % 12 || 12;
 
-  return {
-    hour: String(hour12),
-    minute,
-    period,
-  };
+  return `${hour12}:${minutes.slice(0, 2)} ${period}`;
 }
 
-// Converts 12-hour selections to backend-compatible HH:mm.
-function to24Hour(hour: string, minute: string, period: string) {
-  if (!hour || !minute) return "";
-
-  let hour24 = Number(hour);
-
-  if (period === "AM" && hour24 === 12) {
-    hour24 = 0;
-  } else if (period === "PM" && hour24 !== 12) {
-    hour24 += 12;
-  }
-
-  return `${String(hour24).padStart(2, "0")}:${minute}`;
-}
-
+// TIME INPUT COMPONENT
 interface TimeInputProps {
   label: string;
   value: string;
@@ -90,69 +70,22 @@ interface TimeInputProps {
 }
 
 function TimeInput({ label, value, onChange }: TimeInputProps) {
-  const parsed = to12Hour(value);
-
-  const handleTimeChange = (
-    hour: string,
-    minute: string,
-    period: string
-  ) => {
-    onChange(to24Hour(hour, minute, period));
-  };
-
   return (
     <div className="form-group">
       <label>{label}</label>
 
-      <div className="time-select-group">
-        <select
-          aria-label={`${label} hour`}
-          value={parsed.hour}
-          onChange={(e) =>
-            handleTimeChange(e.target.value, parsed.minute, parsed.period)
-          }
-          required
-        >
-          <option value="">Hour</option>
-          {Array.from({ length: 12 }, (_, index) => index + 1).map(
-            (hour) => (
-              <option key={hour} value={String(hour)}>
-                {hour}
-              </option>
-            )
-          )}
-        </select>
+      <input
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+      />
 
-        <select
-          aria-label={`${label} minute`}
-          value={parsed.minute}
-          onChange={(e) =>
-            handleTimeChange(parsed.hour, e.target.value, parsed.period)
-          }
-          required
-        >
-          <option value="">Min</option>
-          {Array.from({ length: 60 }, (_, index) =>
-            String(index).padStart(2, "0")
-          ).map((minute) => (
-            <option key={minute} value={minute}>
-              {minute}
-            </option>
-          ))}
-        </select>
-
-        <select
-          aria-label={`${label} AM or PM`}
-          value={parsed.period}
-          onChange={(e) =>
-            handleTimeChange(parsed.hour, parsed.minute, e.target.value)
-          }
-          required
-        >
-          <option value="AM">AM</option>
-          <option value="PM">PM</option>
-        </select>
-      </div>
+      {value && (
+        <small className="time-preview">
+          Selected time: {formatTime(value)}
+        </small>
+      )}
     </div>
   );
 }
@@ -194,24 +127,42 @@ export default function ScheduleForm({
       return;
     }
 
-    onSubmit(form);
+    // Ongoing and Completed are managed by the backend.
+    // New schedules default to Pending.
+    const submittedForm: ScheduleData = {
+      ...form,
+      status: initialData
+        ? initialData.status
+        : "Pending",
+    };
+
+    onSubmit(submittedForm);
   };
 
   return (
     <div className="schedule-form-card">
+
+      {/* FORM HEADER */}
       <div className="form-heading">
         <h2>
           {initialData
             ? "Edit Research Schedule"
             : "Create Research Schedule"}
         </h2>
-        <p>Provide the complete details of the research activity.</p>
+
+        <p>
+          Provide the complete details of the research activity.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>
+
         <div className="form-grid">
+
+          {/* RESEARCH TITLE */}
           <div className="form-group full-width">
             <label>Research Title</label>
+
             <input
               name="researchTitle"
               value={form.researchTitle}
@@ -221,8 +172,10 @@ export default function ScheduleForm({
             />
           </div>
 
+          {/* RESEARCHER */}
           <div className="form-group">
             <label>Researcher / Proponent</label>
+
             <input
               name="researcher"
               value={form.researcher}
@@ -232,8 +185,10 @@ export default function ScheduleForm({
             />
           </div>
 
+          {/* ACTIVITY */}
           <div className="form-group">
             <label>Research Activity</label>
+
             <select
               name="activity"
               value={form.activity}
@@ -247,8 +202,10 @@ export default function ScheduleForm({
             </select>
           </div>
 
+          {/* DATE */}
           <div className="form-group">
             <label>Schedule Date</label>
+
             <input
               type="date"
               name="date"
@@ -258,8 +215,10 @@ export default function ScheduleForm({
             />
           </div>
 
+          {/* VENUE */}
           <div className="form-group">
             <label>Venue</label>
+
             <input
               name="venue"
               value={form.venue}
@@ -269,6 +228,7 @@ export default function ScheduleForm({
             />
           </div>
 
+          {/* START TIME */}
           <TimeInput
             label="Start Time"
             value={form.startTime}
@@ -280,6 +240,7 @@ export default function ScheduleForm({
             }
           />
 
+          {/* END TIME */}
           <TimeInput
             label="End Time"
             value={form.endTime}
@@ -291,8 +252,10 @@ export default function ScheduleForm({
             }
           />
 
+          {/* PANEL CHAIR */}
           <div className="form-group">
             <label>Panel Chair</label>
+
             <input
               name="panelChair"
               value={form.panelChair}
@@ -302,37 +265,54 @@ export default function ScheduleForm({
             />
           </div>
 
+          {/* STATUS */}
           <div className="form-group">
-            <label>Status</label>
+            <label>Schedule Status</label>
+
             <select
               name="status"
               value={form.status}
               onChange={handleChange}
+              disabled={Boolean(
+                initialData &&
+                (initialData.status === "Ongoing" ||
+                  initialData.status === "Completed")
+              )}
             >
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
-
-              {form.status === "Ongoing" && (
-                <option value="Ongoing" disabled>
-                  Ongoing (Automatic)
-                </option>
-              )}
-
-              <option value="Completed">Completed</option>
               <option value="Cancelled">Cancelled</option>
             </select>
+
+            <small className="status-note">
+              Ongoing and Completed statuses are updated automatically
+              according to the scheduled time.
+            </small>
           </div>
+
         </div>
 
+        {/* FORM ACTIONS */}
         <div className="form-actions">
-          <button type="button" onClick={onCancel}>
+
+          <button
+            type="button"
+            onClick={onCancel}
+          >
             Cancel
           </button>
 
-          <button type="submit" className="primary-button">
-            {initialData ? "Update Schedule" : "Save Schedule"}
+          <button
+            type="submit"
+            className="primary-button"
+          >
+            {initialData
+              ? "Update Schedule"
+              : "Save Schedule"}
           </button>
+
         </div>
+
       </form>
     </div>
   );
