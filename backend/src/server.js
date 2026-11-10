@@ -2,6 +2,9 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const http = require("http");
+const { Server } = require("socket.io");
+
 require("dotenv").config();
 
 // Import routes
@@ -15,6 +18,7 @@ const {
 } = require("./services/scheduleStatusService");
 
 const app = express();
+const server = http.createServer(app);
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -25,7 +29,41 @@ const allowedOrigins = [
   .filter(Boolean)
   .map((origin) => origin.trim().replace(/\/+$/, ""));
 
-// CORS
+// Initialize Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      const normalizedOrigin = origin.replace(/\/+$/, "");
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      console.log("Socket.IO blocked by CORS:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// Make Socket.IO available to controllers through Express.
+app.set("io", io);
+
+// Socket.IO connection events
+io.on("connection", (socket) => {
+  console.log("Socket.IO client connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("Socket.IO client disconnected:", socket.id);
+  });
+});
+
+// Express CORS
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -64,6 +102,7 @@ app.use("/api/admin-profile", adminProfileRoutes);
 app.get("/", (req, res) => {
   res.json({
     message: "Research Scheduling API is running.",
+    socketIO: "Enabled",
   });
 });
 
@@ -93,10 +132,11 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log("Socket.IO is enabled.");
   console.log("Allowed frontend origins:", allowedOrigins);
 
   // Start automatic schedule status updates.
-  startScheduleStatusScheduler();
+  startScheduleStatusScheduler(io);
 });

@@ -1,5 +1,4 @@
-
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshCw,
   CalendarDays,
@@ -9,7 +8,7 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
-
+import { socket } from "../socket";
 import "./StaffCalendar.css";
 
 interface ScheduleRecord {
@@ -75,16 +74,12 @@ function getStatusClass(status: string): string {
   switch (status?.toLowerCase()) {
     case "ongoing":
       return "ongoing";
-
     case "completed":
       return "completed";
-
     case "approved":
       return "approved";
-
     case "cancelled":
       return "cancelled";
-
     default:
       return "pending";
   }
@@ -106,10 +101,9 @@ export default function StaffCalendar() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetch schedules from the shared backend.
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError("");
 
       const response = await fetch(API_URL);
@@ -129,24 +123,25 @@ export default function StaffCalendar() {
       console.error("Staff calendar error:", err);
       setError("Unable to load schedules. Please try again.");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
-  };
+  }, []);
 
+  // Initial fetch and real-time updates.
   useEffect(() => {
     fetchSchedules();
-  }, []);
 
-  // Refresh periodically to retrieve updated backend statuses.
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      fetchSchedules();
-    }, 60 * 1000);
+    const handleScheduleUpdate = () => {
+      fetchSchedules(false);
+    };
 
-    return () => window.clearInterval(interval);
-  }, []);
+    socket.on("schedules:updated", handleScheduleUpdate);
 
-  // Group schedules according to their dates.
+    return () => {
+      socket.off("schedules:updated", handleScheduleUpdate);
+    };
+  }, [fetchSchedules]);
+
   const schedulesByDate = useMemo(() => {
     const grouped: Record<string, ScheduleRecord[]> = {};
 
@@ -165,7 +160,6 @@ export default function StaffCalendar() {
     return grouped;
   }, [schedules]);
 
-  // Generate calendar days.
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -191,7 +185,6 @@ export default function StaffCalendar() {
   }, [currentMonth]);
 
   const selectedSchedules = schedulesByDate[selectedDate] || [];
-
   const todayKey = dateKey(new Date());
 
   const upcomingCount = schedules.filter((schedule) => {
@@ -212,7 +205,6 @@ export default function StaffCalendar() {
     (schedule) => schedule.status?.toLowerCase() === "ongoing"
   ).length;
 
-  // Change calendar month.
   const changeMonth = (direction: number) => {
     setCurrentMonth((previous) =>
       new Date(
@@ -223,7 +215,6 @@ export default function StaffCalendar() {
     );
   };
 
-  // Return to current month and date.
   const showToday = () => {
     const today = new Date();
 
@@ -234,23 +225,18 @@ export default function StaffCalendar() {
     setSelectedDate(dateKey(today));
   };
 
-  // Open modal when a calendar date is clicked.
   const handleDateClick = (key: string) => {
     setSelectedDate(key);
     setIsModalOpen(true);
   };
 
-  // Close modal.
   const closeModal = () => {
     setIsModalOpen(false);
   };
 
-  // Close modal using Escape key.
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        closeModal();
-      }
+      if (event.key === "Escape") closeModal();
     };
 
     window.addEventListener("keydown", handleEscape);
@@ -267,7 +253,6 @@ export default function StaffCalendar() {
 
   return (
     <div className="staff-calendar">
-      {/* Calendar Header */}
       <div className="staff-calendar-header">
         <div>
           <h2>Research Schedule Calendar</h2>
@@ -278,7 +263,7 @@ export default function StaffCalendar() {
 
         <button
           className="staff-refresh-btn"
-          onClick={fetchSchedules}
+          onClick={() => fetchSchedules()}
           disabled={loading}
           type="button"
         >
@@ -287,7 +272,6 @@ export default function StaffCalendar() {
         </button>
       </div>
 
-      {/* Statistics */}
       <div className="staff-stats">
         <div className="staff-stat-card">
           <p>Total Schedules</p>
@@ -310,13 +294,8 @@ export default function StaffCalendar() {
         </div>
       </div>
 
-      {error && (
-        <div className="staff-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="staff-error">{error}</div>}
 
-      {/* Monthly Calendar */}
       <div className="staff-calendar-panel">
         <div className="staff-month-toolbar">
           <div>
@@ -420,31 +399,15 @@ export default function StaffCalendar() {
           })}
         </div>
 
-        {/* Calendar Legend */}
         <div className="staff-calendar-legend">
-          <span>
-            <i className="legend-approved" /> Approved
-          </span>
-
-          <span>
-            <i className="legend-pending" /> Pending
-          </span>
-
-          <span>
-            <i className="legend-ongoing" /> Ongoing
-          </span>
-
-          <span>
-            <i className="legend-completed" /> Completed
-          </span>
-
-          <span>
-            <i className="legend-cancelled" /> Cancelled
-          </span>
+          <span><i className="legend-approved" /> Approved</span>
+          <span><i className="legend-pending" /> Pending</span>
+          <span><i className="legend-ongoing" /> Ongoing</span>
+          <span><i className="legend-completed" /> Completed</span>
+          <span><i className="legend-cancelled" /> Cancelled</span>
         </div>
       </div>
 
-      {/* Centered Schedule Modal */}
       {isModalOpen && (
         <div
           className="staff-modal-overlay"
@@ -457,13 +420,11 @@ export default function StaffCalendar() {
             aria-labelledby="staff-modal-title"
             onClick={(event) => event.stopPropagation()}
           >
-            {/* Modal Header */}
             <div className="staff-modal-header">
               <div>
                 <h3 id="staff-modal-title">
                   Scheduled Activities
                 </h3>
-
                 <p>
                   {formatDate(
                     new Date(`${selectedDate}T12:00:00`)
@@ -481,7 +442,6 @@ export default function StaffCalendar() {
               </button>
             </div>
 
-            {/* Modal Content */}
             <div className="staff-modal-body">
               {loading ? (
                 <div className="staff-empty">
@@ -503,11 +463,9 @@ export default function StaffCalendar() {
                     <div className="staff-schedule-top">
                       <div>
                         <h4>{schedule.researchTitle}</h4>
-
                         <p className="staff-researcher">
                           {schedule.researcher}
                         </p>
-
                         <p className="staff-activity">
                           {schedule.activity}
                         </p>
@@ -538,7 +496,6 @@ export default function StaffCalendar() {
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="staff-modal-footer">
               <span>
                 {selectedSchedules.length}{" "}

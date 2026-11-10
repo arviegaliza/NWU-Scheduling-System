@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+import { socket } from "../socket";
 import {
   CalendarDays,
   Clock,
@@ -78,24 +80,26 @@ const Dashboard = () => {
   }, []);
 
   // Initial loading and automatic refresh every 30 seconds
-  useEffect(() => {
+ useEffect(() => {
+  fetchSchedules();
+
+  const handleScheduleUpdate = () => {
     fetchSchedules();
+  };
 
-    const interval = setInterval(() => {
-      fetchSchedules();
-    }, 30000);
+  socket.on("schedules:updated", handleScheduleUpdate);
 
-    const handleFocus = () => {
-      fetchSchedules();
-    };
+  const handleFocus = () => {
+    fetchSchedules();
+  };
 
-    window.addEventListener("focus", handleFocus);
+  window.addEventListener("focus", handleFocus);
 
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [fetchSchedules]);
+  return () => {
+    socket.off("schedules:updated", handleScheduleUpdate);
+    window.removeEventListener("focus", handleFocus);
+  };
+}, [fetchSchedules]);
 
   // Today's date in YYYY-MM-DD format
   const today = new Date().toLocaleDateString("en-CA");

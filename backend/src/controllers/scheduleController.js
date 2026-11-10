@@ -9,6 +9,23 @@ const ALLOWED_STATUSES = [
   "Cancelled",
 ];
 
+// Broadcast schedule changes to connected frontend clients.
+function broadcastScheduleUpdate(req, action, schedule = null, id = null) {
+  const io = req.app.get("io");
+
+  if (!io) {
+    console.warn("Socket.IO is not available.");
+    return;
+  }
+
+  io.emit("schedules:updated", {
+    action,
+    schedule,
+    id,
+    timestamp: new Date().toISOString(),
+  });
+}
+
 // Accepts 24-hour values (16:00) or 12-hour values (4:00 PM).
 function normalizeTime(value) {
   if (typeof value !== "string") {
@@ -36,9 +53,7 @@ function normalizeTime(value) {
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   }
 
-  const twentyFourHourMatch = time.match(
-    /^(\d{2}):(\d{2})$/
-  );
+  const twentyFourHourMatch = time.match(/^(\d{2}):(\d{2})$/);
 
   if (twentyFourHourMatch) {
     const hour = Number(twentyFourHourMatch[1]);
@@ -128,6 +143,7 @@ exports.getSchedules = async (req, res) => {
     res.status(200).json(result.rows);
   } catch (error) {
     console.error("Get schedules error:", error.message);
+
     res.status(500).json({
       message: "Failed to retrieve schedules.",
     });
@@ -154,6 +170,7 @@ exports.getScheduleById = async (req, res) => {
     res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error("Get schedule error:", error.message);
+
     res.status(500).json({
       message: "Failed to retrieve schedule.",
     });
@@ -226,9 +243,14 @@ exports.createSchedule = async (req, res) => {
       ]
     );
 
-    res.status(201).json(result.rows[0]);
+    const newSchedule = result.rows[0];
+
+    broadcastScheduleUpdate(req, "created", newSchedule);
+
+    res.status(201).json(newSchedule);
   } catch (error) {
     console.error("Create schedule error:", error.message);
+
     res.status(500).json({
       message: "Failed to create schedule.",
     });
@@ -309,9 +331,14 @@ exports.updateSchedule = async (req, res) => {
       });
     }
 
-    res.status(200).json(result.rows[0]);
+    const updatedSchedule = result.rows[0];
+
+    broadcastScheduleUpdate(req, "updated", updatedSchedule);
+
+    res.status(200).json(updatedSchedule);
   } catch (error) {
     console.error("Update schedule error:", error.message);
+
     res.status(500).json({
       message: "Failed to update schedule.",
     });
@@ -332,12 +359,17 @@ exports.deleteSchedule = async (req, res) => {
       });
     }
 
+    const deletedId = result.rows[0].id;
+
+    broadcastScheduleUpdate(req, "deleted", null, deletedId);
+
     res.status(200).json({
       message: "Schedule deleted successfully.",
-      id: result.rows[0].id,
+      id: deletedId,
     });
   } catch (error) {
     console.error("Delete schedule error:", error.message);
+
     res.status(500).json({
       message: "Failed to delete schedule.",
     });
