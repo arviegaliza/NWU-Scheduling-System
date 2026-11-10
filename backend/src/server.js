@@ -14,12 +14,12 @@ const app = express();
 // Allowed frontend websites
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://nwu-scheduling-system.vercel.app/",
-  "https://frontend-571p-tau.vercel.app/",
+  "https://nwu-scheduling-system.vercel.app",
+  "https://frontend-571p-tau.vercel.app",
   process.env.FRONTEND_URL,
 ]
   .filter(Boolean)
-  .map((origin) => origin.replace(/\/+$/, ""));
+  .map((origin) => origin.trim().replace(/\/+$/, ""));
 
 // CORS configuration
 app.use(
