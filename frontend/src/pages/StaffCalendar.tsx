@@ -1,6 +1,12 @@
 
 import { useEffect, useState } from "react";
-import { RefreshCw, CalendarDays, Clock, MapPin } from "lucide-react";
+import {
+  RefreshCw,
+  CalendarDays,
+  Clock,
+  MapPin,
+} from "lucide-react";
+import "./StaffCalendar.css";
 
 interface ScheduleRecord {
   id: number;
@@ -14,9 +20,11 @@ interface ScheduleRecord {
   status: string;
 }
 
-const API_URL = `${
+const SERVER_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5000"
-}/api/schedules`;
+).replace(/\/+$/, "");
+
+const API_URL = `${SERVER_URL}/api/schedules`;
 
 export default function StaffCalendar() {
   const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
@@ -35,6 +43,11 @@ export default function StaffCalendar() {
       }
 
       const data = await response.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid schedule data received.");
+      }
+
       setSchedules(data);
     } catch (err) {
       console.error("Staff calendar error:", err);
@@ -48,19 +61,56 @@ export default function StaffCalendar() {
     fetchSchedules();
   }, []);
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const upcomingCount = schedules.filter((schedule) => {
+    const scheduleDate = new Date(schedule.date);
+    return !Number.isNaN(scheduleDate.getTime()) &&
+      scheduleDate >= today &&
+      schedule.status !== "Cancelled";
+  }).length;
+
+  const completedCount = schedules.filter(
+    (schedule) => schedule.status?.toLowerCase() === "completed"
+  ).length;
+
   const sortedSchedules = [...schedules].sort(
     (a, b) =>
       new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
+  const getStatusClass = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "completed":
+        return "completed";
+      case "approved":
+        return "approved";
+      case "cancelled":
+        return "cancelled";
+      default:
+        return "pending";
+    }
+  };
+
+  const formatDate = (date: string) => {
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) return date;
+
+    return parsedDate.toLocaleDateString("en-PH", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
-    <div className="w-full space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="staff-calendar">
+      <div className="staff-calendar-header">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Research Schedule Calendar
-          </h2>
-          <p className="text-gray-500 mt-1">
+          <h2>Research Schedule Calendar</h2>
+          <p>
             View the university's shared research activities and schedules.
           </p>
         </div>
@@ -68,116 +118,92 @@ export default function StaffCalendar() {
         <button
           onClick={fetchSchedules}
           disabled={loading}
-          className="flex items-center justify-center gap-2 rounded-lg bg-[#102746] px-4 py-2 text-white hover:bg-[#193b64] disabled:opacity-50"
+          className="staff-refresh-btn"
         >
           <RefreshCw size={16} />
-          Refresh
+          {loading ? "Loading..." : "Refresh"}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl bg-white border p-5">
-          <p className="text-sm text-gray-500">Total Schedules</p>
-          <h3 className="text-3xl font-bold text-gray-800 mt-2">
-            {schedules.length}
-          </h3>
+      <div className="staff-stats">
+        <div className="staff-stat-card">
+          <p>Total Schedules</p>
+          <h3>{schedules.length}</h3>
         </div>
 
-        <div className="rounded-xl bg-white border p-5">
-          <p className="text-sm text-gray-500">Upcoming Schedules</p>
-          <h3 className="text-3xl font-bold text-blue-700 mt-2">
-            {schedules.filter(
-              (schedule) =>
-                new Date(schedule.date).getTime() >=
-                new Date().setHours(0, 0, 0, 0)
-            ).length}
-          </h3>
+        <div className="staff-stat-card upcoming">
+          <p>Upcoming Schedules</p>
+          <h3>{upcomingCount}</h3>
         </div>
 
-        <div className="rounded-xl bg-white border p-5">
-          <p className="text-sm text-gray-500">Completed Schedules</p>
-          <h3 className="text-3xl font-bold text-green-700 mt-2">
-            {schedules.filter(
-              (schedule) => schedule.status === "Completed"
-            ).length}
-          </h3>
+        <div className="staff-stat-card completed">
+          <p>Completed Schedules</p>
+          <h3>{completedCount}</h3>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700">
+        <div className="staff-error">
           {error}
         </div>
       )}
 
-      <div className="rounded-xl bg-white border shadow-sm overflow-hidden">
-        <div className="border-b px-5 py-4">
-          <h3 className="font-semibold text-gray-800">
-            University Research Schedules
-          </h3>
-          <p className="text-sm text-gray-500">
-            Read-only schedule information for staff.
-          </p>
+      <div className="staff-schedule-container">
+        <div className="staff-schedule-heading">
+          <h3>University Research Schedules</h3>
+          <p>Read-only schedule information for staff.</p>
         </div>
 
         {loading ? (
-          <div className="p-10 text-center text-gray-500">
+          <div className="staff-loading">
             Loading schedules...
           </div>
         ) : sortedSchedules.length === 0 ? (
-          <div className="p-10 text-center text-gray-500">
-            <CalendarDays size={36} className="mx-auto mb-3" />
-            No schedules available.
+          <div className="staff-empty">
+            <CalendarDays size={38} />
+            <p>No schedules available.</p>
           </div>
         ) : (
-          <div className="divide-y">
+          <div>
             {sortedSchedules.map((schedule) => (
               <div
                 key={schedule.id}
-                className="p-5 hover:bg-gray-50 transition"
+                className="staff-schedule-item"
               >
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <div className="staff-schedule-top">
                   <div>
-                    <h4 className="font-semibold text-gray-800">
-                      {schedule.researchTitle}
-                    </h4>
+                    <h4>{schedule.researchTitle}</h4>
 
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="staff-researcher">
                       {schedule.researcher}
                     </p>
 
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="staff-activity">
                       {schedule.activity}
                     </p>
                   </div>
 
                   <span
-                    className={`text-xs font-semibold px-3 py-1 rounded-full w-fit ${
-                      schedule.status === "Completed"
-                        ? "bg-green-100 text-green-700"
-                        : schedule.status === "Approved"
-                        ? "bg-blue-100 text-blue-700"
-                        : schedule.status === "Cancelled"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
+                    className={`staff-status ${getStatusClass(
+                      schedule.status
+                    )}`}
                   >
                     {schedule.status}
                   </span>
                 </div>
 
-                <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4 text-sm text-gray-600">
-                  <span className="flex items-center gap-2">
+                <div className="staff-schedule-details">
+                  <span className="staff-detail">
                     <CalendarDays size={16} />
-                    {schedule.date}
+                    {formatDate(schedule.date)}
                   </span>
 
-                  <span className="flex items-center gap-2">
+                  <span className="staff-detail">
                     <Clock size={16} />
                     {schedule.startTime} - {schedule.endTime}
                   </span>
 
-                  <span className="flex items-center gap-2">
+                  <span className="staff-detail">
                     <MapPin size={16} />
                     {schedule.venue}
                   </span>
