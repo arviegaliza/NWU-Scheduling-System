@@ -22,23 +22,21 @@ const SERVER_URL =
 
 const API_URL = `${SERVER_URL}/api/schedules`;
 
-// CONVERT 24-HOUR TIME TO 12-HOUR AM/PM FORMAT
+// FORMAT DATABASE TIME INTO 12-HOUR AM/PM
 const formatTime = (time: string) => {
   if (!time) return "";
 
-  const normalizedTime = time.trim();
-
-  const match = normalizedTime.match(
+  const match = time.trim().match(
     /^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/
   );
 
-  if (!match) return normalizedTime;
+  if (!match) return time;
 
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
 
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-    return normalizedTime;
+  if (hours > 23 || hours < 0 || minutes > 59 || minutes < 0) {
+    return time;
   }
 
   const period = hours >= 12 ? "PM" : "AM";
@@ -58,7 +56,7 @@ export default function Calendar() {
   const [selectedSchedule, setSelectedSchedule] =
     useState<ScheduleData | null>(null);
 
-  // FETCH SCHEDULES
+  // FETCH SCHEDULES FROM DATABASE
   const fetchSchedules = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) {
@@ -77,12 +75,13 @@ export default function Calendar() {
 
       setSchedules(data);
 
-      // Keep the selected schedule details updated.
+      // Update the selected schedule if its details changed.
       setSelectedSchedule((previous) => {
         if (!previous) return null;
 
         const updatedSchedule = data.find(
-          (schedule) => String(schedule.id) === String(previous.id)
+          (schedule) =>
+            String(schedule.id) === String(previous.id)
         );
 
         return updatedSchedule ?? null;
@@ -103,12 +102,12 @@ export default function Calendar() {
     }
   }, []);
 
-  // INITIAL FETCH AND REAL-TIME SOCKET.IO UPDATES
+  // INITIAL FETCH AND SOCKET.IO REAL-TIME UPDATES
   useEffect(() => {
     fetchSchedules();
 
     const handleScheduleUpdate = () => {
-      console.log("Real-time schedule update received.");
+      console.log("Schedule update received from backend.");
       fetchSchedules(false);
     };
 
@@ -159,7 +158,16 @@ export default function Calendar() {
     }
   };
 
-  // CONVERT DATABASE RECORDS INTO CALENDAR EVENTS
+  // AUTOMATICALLY DISPLAY ONLY ACTIVE SCHEDULES
+  // COMPLETED SCHEDULES REMAIN IN THE DATABASE
+  // BUT ARE HIDDEN FROM THE CALENDAR.
+  const visibleSchedules = useMemo(() => {
+    return schedules.filter(
+      (schedule) => schedule.status !== "Completed"
+    );
+  }, [schedules]);
+
+  // CONVERT DATABASE RECORDS INTO FULLCALENDAR EVENTS
   const events: EventInput[] = useMemo(() => {
     const colors: Record<string, string> = {
       Pending: "#f59e0b",
@@ -169,7 +177,7 @@ export default function Calendar() {
       Cancelled: "#dc2626",
     };
 
-    return schedules.map((schedule) => {
+    return visibleSchedules.map((schedule) => {
       const color = colors[schedule.status] ?? "#64748b";
 
       return {
@@ -184,9 +192,9 @@ export default function Calendar() {
         },
       };
     });
-  }, [schedules]);
+  }, [visibleSchedules]);
 
-  // VIEW SCHEDULE DETAILS
+  // OPEN SCHEDULE DETAILS
   const handleEventClick = (info: EventClickArg) => {
     const schedule = info.event.extendedProps.schedule as ScheduleData;
 
@@ -275,10 +283,6 @@ export default function Calendar() {
 
         <span>
           <i className="legend-ongoing" /> Ongoing
-        </span>
-
-        <span>
-          <i className="legend-completed" /> Completed
         </span>
 
         <span>
@@ -423,7 +427,6 @@ export default function Calendar() {
 
               <div>
                 <span>Status</span>
-
                 <strong
                   className={`status-${selectedSchedule.status.toLowerCase()}`}
                 >
