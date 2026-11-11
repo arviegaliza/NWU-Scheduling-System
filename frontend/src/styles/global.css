@@ -1227,3 +1227,591 @@ button {
     flex-direction: column;
   }
 }
+
+/* =========================================
+   RESPONSIVE DESIGN - TABLET AND MOBILE
+   Append this section at the bottom of your CSS
+========================================= */
+
+/* Prevent horizontal overflow */
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+.app-layout {
+  width: 100%;
+  min-width: 0;
+}
+
+.main-content {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.page-content,
+.page-container {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Make cards and content flexible */
+.content-card,
+.stat-card,
+.schedule-card,
+.schedule-details-card,
+.calendar-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* TABLET: 768px to 1024px */
+@media (max-width: 1024px) {
+  .statistics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .room-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .main-content {
+    width: calc(100% - 70px);
+    margin-left: 70px;
+  }
+
+  .page-content {
+    padding: 22px;
+  }
+
+  .calendar-card {
+    padding: 18px;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 16px;
+  }
+}
+
+/* MOBILE: 768px and below */
+@media (max-width: 768px) {
+  /* Sidebar */
+  .sidebar {
+    width: 62px;
+    overflow-x: hidden;
+  }
+
+  .sidebar-brand {
+    height: 72px;
+    justify-content: center;
+    padding: 10px 5px;
+  }
+
+  .brand-icon {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-brand h2,
+  .sidebar-brand span,
+  .sidebar-label,
+  .sidebar-link span,
+  .logout-button span {
+    display: none;
+  }
+
+  .sidebar-menu {
+    padding: 0 7px;
+    gap: 8px;
+  }
+
+  .sidebar-link,
+  .logout-button {
+    min-height: 44px;
+    justify-content: center;
+    padding: 10px 5px;
+  }
+
+  .sidebar-bottom {
+    padding: 12px 7px;
+  }
+
+  /* Main content */
+  .main-content {
+    width: calc(100% - 62px);
+    margin-left: 62px;
+  }
+
+  .page-content {
+    padding: 16px;
+  }
+
+  /* Topbar */
+  .topbar {
+    min-height: 65px;
+    height: auto;
+    padding: 12px 15px;
+    gap: 10px;
+  }
+
+  .topbar h2 {
+    font-size: 16px;
+  }
+
+  .topbar p {
+    font-size: 10px;
+  }
+
+  .topbar-actions {
+    gap: 10px;
+  }
+
+  .admin-profile {
+    gap: 6px;
+  }
+
+  .admin-profile strong,
+  .admin-profile small {
+    display: none;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+  }
+
+  /* Page headings */
+  .welcome-section,
+  .page-heading,
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .welcome-section h1,
+  .page-heading h1 {
+    font-size: 20px;
+  }
+
+  .welcome-section p,
+  .page-heading p,
+  .section-heading p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  /* Buttons */
+  .primary-button,
+  .secondary-button {
+    min-height: 40px;
+    font-size: 12px;
+  }
+
+  .welcome-section .primary-button,
+  .page-heading .primary-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Dashboard statistics */
+  .statistics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-card h2 {
+    font-size: 23px;
+    margin-top: 12px;
+  }
+
+  .stat-card h3,
+  .stat-card p {
+    font-size: 11px;
+  }
+
+  .stat-icon {
+    width: 35px;
+    height: 35px;
+  }
+
+  /* General cards */
+  .content-card {
+    padding: 16px;
+  }
+
+  .section-header h2,
+  .section-heading h2 {
+    font-size: 15px;
+  }
+
+  /* Forms */
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .form-grid label {
+    font-size: 12px;
+  }
+
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea {
+    width: 100%;
+    min-width: 0;
+    font-size: 14px;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 9px;
+  }
+
+  .form-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Search and toolbar */
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toolbar select {
+    width: 100%;
+  }
+
+  /* Tables: allow horizontal scrolling */
+  .table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 700px;
+  }
+
+  /* Rooms and notifications */
+  .room-grid,
+  .notification-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .notification-item {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .notification-info {
+    min-width: 0;
+  }
+
+  .notification-info p {
+    overflow-wrap: anywhere;
+  }
+
+  /* Schedule cards */
+  .schedule-card {
+    padding: 15px;
+  }
+
+  .schedule-card-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .schedule-card-header h3 {
+    font-size: 15px;
+    overflow-wrap: anywhere;
+  }
+
+  .schedule-card-details {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .schedule-card-actions {
+    flex-wrap: wrap;
+  }
+
+  .schedule-card-actions button {
+    flex: 1;
+    min-height: 38px;
+  }
+
+  /* Schedule details */
+  .schedule-details-card {
+    padding: 17px;
+  }
+
+  .details-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .details-header h2 {
+    font-size: 19px;
+  }
+
+  .details-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
+  }
+
+  .details-item.full-width {
+    grid-column: auto;
+  }
+
+  .details-actions {
+    flex-direction: column-reverse;
+  }
+
+  .details-actions button {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  /* Calendar */
+  .calendar-card {
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .calendar-card .fc {
+    font-size: 11px;
+  }
+
+  .fc .fc-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .fc .fc-button {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
+  .fc .fc-col-header-cell-cushion {
+    font-size: 10px;
+    padding: 6px 2px;
+  }
+
+  .fc .fc-daygrid-day-number {
+    font-size: 10px;
+    padding: 4px;
+  }
+
+  .fc .fc-event {
+    font-size: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  /* Settings */
+  .toggle-row {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .toggle-row input {
+    flex-shrink: 0;
+  }
+}
+
+/* SMALL MOBILE: 480px and below */
+@media (max-width: 480px) {
+  .main-content {
+    width: calc(100% - 58px);
+    margin-left: 58px;
+  }
+
+  .sidebar {
+    width: 58px;
+  }
+
+  .sidebar-menu {
+    padding: 0 5px;
+  }
+
+  .page-content {
+    padding: 12px;
+  }
+
+  .topbar {
+    padding: 10px;
+  }
+
+  .topbar h2 {
+    font-size: 14px;
+  }
+
+  .topbar p {
+    font-size: 9px;
+  }
+
+  .topbar-actions {
+    gap: 7px;
+  }
+
+  .statistics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 11px;
+  }
+
+  .stat-card h2 {
+    font-size: 21px;
+  }
+
+  .stat-card h3,
+  .stat-card p {
+    font-size: 10px;
+  }
+
+  .content-card {
+    padding: 13px;
+    border-radius: 8px;
+  }
+
+  .page-heading h1,
+  .welcome-section h1 {
+    font-size: 18px;
+  }
+
+  .calendar-card {
+    padding: 7px;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 14px;
+  }
+
+  .fc .fc-button {
+    padding: 5px 7px;
+    font-size: 10px;
+  }
+
+  .fc .fc-daygrid-day-frame {
+    min-height: 55px;
+  }
+
+  .schedule-details-card {
+    padding: 14px;
+  }
+
+  .details-header h2 {
+    font-size: 17px;
+  }
+
+  .details-section {
+    padding: 17px 0;
+  }
+
+  .details-section h3 {
+    font-size: 14px;
+  }
+
+  .details-item strong {
+    font-size: 13px;
+  }
+
+  .not-found-card {
+    padding: 25px 18px;
+  }
+
+  .not-found-card h1 {
+    font-size: 48px;
+  }
+}
+
+/* EXTRA SMALL MOBILE: 360px and below */
+@media (max-width: 360px) {
+  .main-content {
+    width: calc(100% - 54px);
+    margin-left: 54px;
+  }
+
+  .sidebar {
+    width: 54px;
+  }
+
+  .page-content {
+    padding: 9px;
+  }
+
+  .topbar {
+    padding: 9px 7px;
+  }
+
+  .topbar h2 {
+    font-size: 13px;
+  }
+
+  .statistics-grid {
+    gap: 7px;
+  }
+
+  .stat-card {
+    padding: 9px;
+  }
+
+  .stat-card h2 {
+    font-size: 19px;
+  }
+
+  .content-card {
+    padding: 11px;
+  }
+
+  .calendar-card {
+    padding: 4px;
+  }
+
+  .fc .fc-button {
+    padding: 4px 5px;
+    font-size: 9px;
+  }
+}
