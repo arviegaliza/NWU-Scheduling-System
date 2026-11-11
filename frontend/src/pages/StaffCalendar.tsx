@@ -24,7 +24,6 @@ interface ScheduleRecord {
   startTime: string;
   endTime: string;
   venue: string;
-  panelChair?: string;
   panelists?: string[] | string;
   status: string;
 }
@@ -45,6 +44,7 @@ const WEEKDAYS = [
   "Saturday",
 ];
 
+// GET LOCAL DATE KEY
 function dateKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -53,6 +53,7 @@ function dateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+// GET SCHEDULE DATE
 function getScheduleDateKey(value: string): string {
   if (!value) return "";
 
@@ -67,6 +68,7 @@ function getScheduleDateKey(value: string): string {
   return Number.isNaN(parsed.getTime()) ? "" : dateKey(parsed);
 }
 
+// FORMAT DATE
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-PH", {
     month: "long",
@@ -75,25 +77,79 @@ function formatDate(date: Date): string {
   });
 }
 
+// FORMAT STATUS CLASS
 function getStatusClass(status: string): string {
   switch (status?.toLowerCase()) {
     case "upcoming":
       return "upcoming";
+
     case "ongoing":
       return "ongoing";
+
     case "completed":
       return "completed";
+
     case "approved":
       return "approved";
+
     case "cancelled":
       return "cancelled";
+
     default:
       return "pending";
   }
 }
 
-// Supports panelists returned as either an array or a comma-separated string.
-function getPanelistNames(panelists?: string[] | string): string[] {
+// CONVERT 12-HOUR OR 24-HOUR TIME TO 24-HOUR FORMAT
+function convertTo24Hour(time: string): string {
+  if (!time) return "";
+
+  const value = time.trim();
+
+  const twelveHourMatch = value.match(
+    /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i
+  );
+
+  if (twelveHourMatch) {
+    let hour = Number(twelveHourMatch[1]);
+    const minute = Number(twelveHourMatch[2]);
+    const period = twelveHourMatch[3].toUpperCase();
+
+    if (hour < 1 || hour > 12 || minute > 59) {
+      return "";
+    }
+
+    if (period === "AM" && hour === 12) hour = 0;
+    if (period === "PM" && hour !== 12) hour += 12;
+
+    return `${String(hour).padStart(2, "0")}:${String(
+      minute
+    ).padStart(2, "0")}:00`;
+  }
+
+  const twentyFourHourMatch = value.match(
+    /^(\d{1,2}):(\d{2})/
+  );
+
+  if (twentyFourHourMatch) {
+    const hour = Number(twentyFourHourMatch[1]);
+    const minute = Number(twentyFourHourMatch[2]);
+
+    if (hour > 23 || minute > 59) return "";
+
+    return `${String(hour).padStart(2, "0")}:${String(
+      minute
+    ).padStart(2, "0")}:00`;
+  }
+
+  return "";
+}
+
+// GET PANELISTS
+// The panelists field stores the assigned Panel Chair name(s).
+function getPanelistNames(
+  panelists?: string[] | string
+): string[] {
   if (!panelists) return [];
 
   if (Array.isArray(panelists)) {
@@ -102,7 +158,26 @@ function getPanelistNames(panelists?: string[] | string): string[] {
       .filter(Boolean);
   }
 
-  return panelists
+  const value = panelists.trim();
+
+  if (!value) return [];
+
+  // Support JSON array strings.
+  if (value.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(value);
+
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((name) => String(name).trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // Continue with comma-separated parsing.
+    }
+  }
+
+  return value
     .split(",")
     .map((name) => name.trim())
     .filter(Boolean);
@@ -115,7 +190,12 @@ export default function StaffCalendar() {
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
+
+    return new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1
+    );
   });
 
   const [selectedDate, setSelectedDate] = useState(
@@ -125,37 +205,44 @@ export default function StaffCalendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // FETCH SCHEDULES
-  const fetchSchedules = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) setLoading(true);
+  const fetchSchedules = useCallback(
+    async (showLoading = true) => {
+      try {
+        if (showLoading) {
+          setLoading(true);
+        }
 
-      setError("");
+        setError("");
 
-      const response = await fetch(API_URL);
+        const response = await fetch(API_URL);
 
-      if (!response.ok) {
-        throw new Error("Failed to retrieve schedules.");
+        if (!response.ok) {
+          throw new Error("Failed to retrieve schedules.");
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid schedule data received.");
+        }
+
+        setSchedules(data);
+      } catch (err) {
+        console.error("Staff calendar error:", err);
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load schedules. Please try again."
+        );
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
       }
-
-      const data = await response.json();
-
-      if (!Array.isArray(data)) {
-        throw new Error("Invalid schedule data received.");
-      }
-
-      setSchedules(data);
-    } catch (err) {
-      console.error("Staff calendar error:", err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load schedules. Please try again."
-      );
-    } finally {
-      if (showLoading) setLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   // INITIAL FETCH AND REAL-TIME UPDATES
   useEffect(() => {
@@ -201,14 +288,17 @@ export default function StaffCalendar() {
 
     const cells: Array<Date | null> = [];
 
+    // EMPTY CELLS BEFORE FIRST DAY
     for (let i = 0; i < firstDay.getDay(); i++) {
       cells.push(null);
     }
 
+    // DAYS OF THE MONTH
     for (let day = 1; day <= daysInMonth; day++) {
       cells.push(new Date(year, month, day));
     }
 
+    // COMPLETE THE LAST WEEK
     while (cells.length % 7 !== 0) {
       cells.push(null);
     }
@@ -220,7 +310,7 @@ export default function StaffCalendar() {
 
   const todayKey = dateKey(new Date());
 
-  // UPCOMING MEANS THE SCHEDULE'S START DATE/TIME HAS NOT ARRIVED.
+  // UPCOMING SCHEDULE COUNT
   const upcomingCount = schedules.filter((schedule) => {
     const key = getScheduleDateKey(schedule.date);
 
@@ -232,8 +322,12 @@ export default function StaffCalendar() {
       return false;
     }
 
+    const convertedTime = convertTo24Hour(schedule.startTime);
+
+    if (!convertedTime) return false;
+
     const startDateTime = new Date(
-      `${key}T${convertTo24Hour(schedule.startTime)}`
+      `${key}T${convertedTime}`
     );
 
     return (
@@ -242,56 +336,17 @@ export default function StaffCalendar() {
     );
   }).length;
 
+  // COMPLETED SCHEDULE COUNT
   const completedCount = schedules.filter(
-    (schedule) => schedule.status?.toLowerCase() === "completed"
+    (schedule) =>
+      schedule.status?.toLowerCase() === "completed"
   ).length;
 
+  // ONGOING SCHEDULE COUNT
   const ongoingCount = schedules.filter(
-    (schedule) => schedule.status?.toLowerCase() === "ongoing"
+    (schedule) =>
+      schedule.status?.toLowerCase() === "ongoing"
   ).length;
-
-  // SUPPORT 12-HOUR AND 24-HOUR TIME FORMATS.
-  function convertTo24Hour(time: string): string {
-    if (!time) return "";
-
-    const value = time.trim();
-
-    const twelveHourMatch = value.match(
-      /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i
-    );
-
-    if (twelveHourMatch) {
-      let hour = Number(twelveHourMatch[1]);
-      const minute = Number(twelveHourMatch[2]);
-      const period = twelveHourMatch[3].toUpperCase();
-
-      if (hour < 1 || hour > 12 || minute > 59) return "";
-
-      if (period === "AM" && hour === 12) hour = 0;
-      if (period === "PM" && hour !== 12) hour += 12;
-
-      return `${String(hour).padStart(2, "0")}:${String(
-        minute
-      ).padStart(2, "0")}:00`;
-    }
-
-    const twentyFourHourMatch = value.match(
-      /^(\d{1,2}):(\d{2})/
-    );
-
-    if (twentyFourHourMatch) {
-      const hour = Number(twentyFourHourMatch[1]);
-      const minute = Number(twentyFourHourMatch[2]);
-
-      if (hour > 23 || minute > 59) return "";
-
-      return `${String(hour).padStart(2, "0")}:${String(
-        minute
-      ).padStart(2, "0")}:00`;
-    }
-
-    return "";
-  }
 
   // MONTH NAVIGATION
   const changeMonth = (direction: number) => {
@@ -309,7 +364,11 @@ export default function StaffCalendar() {
     const today = new Date();
 
     setCurrentMonth(
-      new Date(today.getFullYear(), today.getMonth(), 1)
+      new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+      )
     );
 
     setSelectedDate(dateKey(today));
@@ -321,6 +380,7 @@ export default function StaffCalendar() {
     setIsModalOpen(true);
   };
 
+  // CLOSE MODAL
   const closeModal = () => {
     setIsModalOpen(false);
   };
@@ -328,7 +388,9 @@ export default function StaffCalendar() {
   // CLOSE MODAL USING ESCAPE KEY
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeModal();
+      if (event.key === "Escape") {
+        closeModal();
+      }
     };
 
     window.addEventListener("keydown", handleEscape);
@@ -338,6 +400,7 @@ export default function StaffCalendar() {
     };
   }, []);
 
+  // MONTH LABEL
   const monthLabel = currentMonth.toLocaleDateString("en-PH", {
     month: "long",
     year: "numeric",
@@ -350,6 +413,7 @@ export default function StaffCalendar() {
       <div className="staff-calendar-header">
         <div>
           <h2>Research Schedule Calendar</h2>
+
           <p>
             View the university's shared research activities and schedules.
           </p>
@@ -389,10 +453,15 @@ export default function StaffCalendar() {
         </div>
       </div>
 
+      {/* ERROR MESSAGE */}
       {error && (
         <div className="staff-error">
           {error}
-          <button type="button" onClick={() => fetchSchedules()}>
+
+          <button
+            type="button"
+            onClick={() => fetchSchedules()}
+          >
             Try Again
           </button>
         </div>
@@ -401,6 +470,7 @@ export default function StaffCalendar() {
       {/* CALENDAR PANEL */}
       <div className="staff-calendar-panel">
 
+        {/* MONTH TOOLBAR */}
         <div className="staff-month-toolbar">
           <div>
             <h3>{monthLabel}</h3>
@@ -456,6 +526,7 @@ export default function StaffCalendar() {
 
             const key = dateKey(date);
             const daySchedules = schedulesByDate[key] || [];
+
             const isToday = key === todayKey;
             const isSelected = key === selectedDate;
 
@@ -506,12 +577,29 @@ export default function StaffCalendar() {
 
         {/* LEGEND */}
         <div className="staff-calendar-legend">
-          <span><i className="legend-approved" /> Approved</span>
-          <span><i className="legend-pending" /> Pending</span>
-          <span><i className="legend-upcoming" /> Upcoming</span>
-          <span><i className="legend-ongoing" /> Ongoing</span>
-          <span><i className="legend-completed" /> Completed</span>
-          <span><i className="legend-cancelled" /> Cancelled</span>
+          <span>
+            <i className="legend-approved" /> Approved
+          </span>
+
+          <span>
+            <i className="legend-pending" /> Pending
+          </span>
+
+          <span>
+            <i className="legend-upcoming" /> Upcoming
+          </span>
+
+          <span>
+            <i className="legend-ongoing" /> Ongoing
+          </span>
+
+          <span>
+            <i className="legend-completed" /> Completed
+          </span>
+
+          <span>
+            <i className="legend-cancelled" /> Cancelled
+          </span>
         </div>
       </div>
 
@@ -528,6 +616,8 @@ export default function StaffCalendar() {
             aria-labelledby="staff-modal-title"
             onClick={(event) => event.stopPropagation()}
           >
+
+            {/* MODAL HEADER */}
             <div className="staff-modal-header">
               <div>
                 <h3 id="staff-modal-title">
@@ -551,6 +641,7 @@ export default function StaffCalendar() {
               </button>
             </div>
 
+            {/* MODAL BODY */}
             <div className="staff-modal-body">
               {loading ? (
                 <div className="staff-empty">
@@ -559,6 +650,7 @@ export default function StaffCalendar() {
               ) : selectedSchedules.length === 0 ? (
                 <div className="staff-empty">
                   <CalendarDays size={36} />
+
                   <p>
                     No research activities scheduled for this date.
                   </p>
@@ -574,12 +666,15 @@ export default function StaffCalendar() {
                       className="staff-schedule-item"
                       key={schedule.id}
                     >
+
+                      {/* RESEARCH INFORMATION */}
                       <div className="staff-schedule-top">
                         <div>
                           <h4>{schedule.researchTitle}</h4>
 
                           <p className="staff-researcher">
-                            {schedule.researcher}
+                            <strong>Proponents:</strong>{" "}
+                            {schedule.researcher || "Not specified"}
                           </p>
 
                           <p className="staff-activity">
@@ -609,19 +704,7 @@ export default function StaffCalendar() {
                         </span>
                       </div>
 
-                      {/* PANEL CHAIR */}
-                      <div className="staff-panel-section">
-                        <h5>
-                          <Users size={16} />
-                          Panel Chair
-                        </h5>
-
-                        <p>
-                          {schedule.panelChair || "Not assigned"}
-                        </p>
-                      </div>
-
-                      {/* PANELISTS */}
+                      {/* PANELISTS - ASSIGNED PANEL CHAIR */}
                       <div className="staff-panel-section">
                         <h5>
                           <Users size={16} />
@@ -637,15 +720,17 @@ export default function StaffCalendar() {
                             ))}
                           </ul>
                         ) : (
-                          <p>Not assigned</p>
+                          <p>No Panel Chair assigned yet.</p>
                         )}
                       </div>
+
                     </div>
                   );
                 })
               )}
             </div>
 
+            {/* MODAL FOOTER */}
             <div className="staff-modal-footer">
               <span>
                 {selectedSchedules.length}{" "}
@@ -662,9 +747,11 @@ export default function StaffCalendar() {
                 Close
               </button>
             </div>
+
           </div>
         </div>
       )}
+
     </div>
   );
 }

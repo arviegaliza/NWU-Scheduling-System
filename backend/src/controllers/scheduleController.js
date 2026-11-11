@@ -28,9 +28,7 @@ function broadcastScheduleUpdate(req, action, schedule = null, id = null) {
 
 // Accepts 24-hour values (16:00) or 12-hour values (4:00 PM).
 function normalizeTime(value) {
-  if (typeof value !== "string") {
-    return null;
-  }
+  if (typeof value !== "string") return null;
 
   const time = value.trim();
 
@@ -59,14 +57,27 @@ function normalizeTime(value) {
     const hour = Number(twentyFourHourMatch[1]);
     const minute = Number(twentyFourHourMatch[2]);
 
-    if (hour > 23 || minute > 59) {
-      return null;
-    }
+    if (hour > 23 || minute > 59) return null;
 
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   }
 
   return null;
+}
+
+// Accepts an array of panelist names or comma-separated names.
+function normalizePanelists(value) {
+  if (!value) return [];
+
+  const names = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+
+  return names
+    .map((name) => String(name).trim())
+    .filter(Boolean);
 }
 
 function validateSchedule(body) {
@@ -78,7 +89,6 @@ function validateSchedule(body) {
     startTime,
     endTime,
     venue,
-    panelChair,
   } = body;
 
   if (
@@ -88,8 +98,7 @@ function validateSchedule(body) {
     !date ||
     !startTime ||
     !endTime ||
-    !venue ||
-    !panelChair
+    !venue
   ) {
     return {
       error: "Please complete all required schedule fields.",
@@ -101,7 +110,7 @@ function validateSchedule(body) {
 
   if (!normalizedStart || !normalizedEnd) {
     return {
-      error: "Invalid time. Use a valid time such as 10:00 AM or 16:00.",
+      error: "Invalid time. Please use a valid time such as 10:00 AM or 4:00 PM.",
     };
   }
 
@@ -114,6 +123,7 @@ function validateSchedule(body) {
   return {
     normalizedStart,
     normalizedEnd,
+    normalizedPanelists: normalizePanelists(body.panelists),
   };
 }
 
@@ -127,7 +137,7 @@ const scheduleSelect = `
     TO_CHAR(start_time, 'FMHH12:MI AM') AS "startTime",
     TO_CHAR(end_time, 'FMHH12:MI AM') AS "endTime",
     venue,
-    panel_chair AS "panelChair",
+    COALESCE(panelists, '[]'::jsonb) AS panelists,
     status
   FROM schedules
 `;
@@ -194,7 +204,6 @@ exports.createSchedule = async (req, res) => {
       activity,
       date,
       venue,
-      panelChair,
       status = "Pending",
     } = req.body;
 
@@ -214,10 +223,10 @@ exports.createSchedule = async (req, res) => {
           start_time,
           end_time,
           venue,
-          panel_chair,
+          panelists,
           status
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
         RETURNING
           id,
           research_title AS "researchTitle",
@@ -227,7 +236,7 @@ exports.createSchedule = async (req, res) => {
           TO_CHAR(start_time, 'FMHH12:MI AM') AS "startTime",
           TO_CHAR(end_time, 'FMHH12:MI AM') AS "endTime",
           venue,
-          panel_chair AS "panelChair",
+          COALESCE(panelists, '[]'::jsonb) AS panelists,
           status
       `,
       [
@@ -238,7 +247,7 @@ exports.createSchedule = async (req, res) => {
         validation.normalizedStart,
         validation.normalizedEnd,
         venue,
-        panelChair,
+        JSON.stringify(validation.normalizedPanelists),
         status,
       ]
     );
@@ -274,7 +283,6 @@ exports.updateSchedule = async (req, res) => {
       activity,
       date,
       venue,
-      panelChair,
       status,
     } = req.body;
 
@@ -295,7 +303,7 @@ exports.updateSchedule = async (req, res) => {
           start_time = $5,
           end_time = $6,
           venue = $7,
-          panel_chair = $8,
+          panelists = $8::jsonb,
           status = $9,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $10
@@ -308,7 +316,7 @@ exports.updateSchedule = async (req, res) => {
           TO_CHAR(start_time, 'FMHH12:MI AM') AS "startTime",
           TO_CHAR(end_time, 'FMHH12:MI AM') AS "endTime",
           venue,
-          panel_chair AS "panelChair",
+          COALESCE(panelists, '[]'::jsonb) AS panelists,
           status
       `,
       [
@@ -319,7 +327,7 @@ exports.updateSchedule = async (req, res) => {
         validation.normalizedStart,
         validation.normalizedEnd,
         venue,
-        panelChair,
+        JSON.stringify(validation.normalizedPanelists),
         status,
         req.params.id,
       ]
