@@ -8,6 +8,8 @@ const { Server } = require("socket.io");
 require("dotenv").config();
 
 // Import routes
+
+
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const researchActivityRoutes = require("./routes/researchActivityRoutes");
 const adminProfileRoutes = require("./routes/adminProfileRoutes");
@@ -16,7 +18,6 @@ const adminProfileRoutes = require("./routes/adminProfileRoutes");
 const {
   startScheduleStatusScheduler,
 } = require("./services/scheduleStatusService");
-
 const app = express();
 const server = http.createServer(app);
 

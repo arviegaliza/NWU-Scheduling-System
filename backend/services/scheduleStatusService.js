@@ -1,5 +1,5 @@
 
-const pool = require("../config/database");
+const pool = require("../src/config/database");
 
 let isRunning = false;
 
