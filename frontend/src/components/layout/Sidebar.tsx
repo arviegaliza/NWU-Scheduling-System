@@ -9,7 +9,6 @@ import {
   Users,
   FileBarChart,
   Settings,
-  LogOut,
   CalendarClock,
   Menu,
   X,
@@ -92,12 +91,8 @@ export default function Sidebar() {
           })}
         </nav>
 
-        <div className="sidebar-bottom">
-          <button className="logout-button">
-            <LogOut size={19} />
-            <span>Logout</span>
-          </button>
-        </div>
+       
+        
       </aside>
     </>
   );
