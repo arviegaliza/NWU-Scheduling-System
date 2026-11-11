@@ -7,7 +7,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
-import type { EventInput, EventClickArg } from "@fullcalendar/core";
+import type { EventClickArg } from "@fullcalendar/core";
 
 import Schedule, {
   type ScheduleData,
@@ -22,25 +22,54 @@ const SERVER_URL =
 
 const API_URL = `${SERVER_URL}/api/schedules`;
 
-// CONVERT 24-HOUR TIME TO 12-HOUR AM/PM FORMAT
-const formatTime = (time: string) => {
+// Convert 12-hour time into 24-hour time for FullCalendar.
+const convertToISOTime = (time: string): string => {
   if (!time) return "";
 
   const normalizedTime = time.trim();
 
-  const match = normalizedTime.match(
+  // Already in 24-hour format.
+  const twentyFourHourMatch = normalizedTime.match(
     /^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/
   );
 
-  if (!match) return normalizedTime;
+  if (twentyFourHourMatch) {
+    const hour = Number(twentyFourHourMatch[1]);
+    const minute = Number(twentyFourHourMatch[2]);
 
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
+    if (hour > 23 || minute > 59) return "";
 
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-    return normalizedTime;
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   }
 
+  // Convert 12-hour format such as 4:00 PM.
+  const twelveHourMatch = normalizedTime.match(
+    /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i
+  );
+
+  if (!twelveHourMatch) return "";
+
+  let hour = Number(twelveHourMatch[1]);
+  const minute = Number(twelveHourMatch[2]);
+  const period = twelveHourMatch[3].toUpperCase();
+
+  if (hour < 1 || hour > 12 || minute > 59) return "";
+
+  if (period === "AM" && hour === 12) hour = 0;
+  if (period === "PM" && hour !== 12) hour += 12;
+
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+};
+
+// Display time in 12-hour AM/PM format.
+const formatTime = (time: string): string => {
+  if (!time) return "";
+
+  const convertedTime = convertToISOTime(time);
+
+  if (!convertedTime) return time;
+
+  const [hours, minutes] = convertedTime.split(":").map(Number);
   const period = hours >= 12 ? "PM" : "AM";
   const displayHours = hours % 12 || 12;
 
@@ -75,9 +104,13 @@ export default function Calendar() {
 
       const data: ScheduleData[] = await response.json();
 
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid schedule data received from the server.");
+      }
+
       setSchedules(data);
 
-      // Keep the selected schedule details updated.
+      // Keep selected schedule details updated.
       setSelectedSchedule((previous) => {
         if (!previous) return null;
 
@@ -87,7 +120,6 @@ export default function Calendar() {
 
         return updatedSchedule ?? null;
       });
-
     } catch (err) {
       console.error("Fetch schedules error:", err);
 
@@ -145,7 +177,6 @@ export default function Calendar() {
       setShowForm(false);
 
       alert("Research schedule successfully saved!");
-
     } catch (err) {
       console.error("Save schedule error:", err);
 
@@ -160,7 +191,7 @@ export default function Calendar() {
   };
 
   // CONVERT DATABASE RECORDS INTO CALENDAR EVENTS
-  const events: EventInput[] = useMemo(() => {
+  const events = useMemo(() => {
     const colors: Record<string, string> = {
       Pending: "#f59e0b",
       Approved: "#2563eb",
@@ -169,21 +200,31 @@ export default function Calendar() {
       Cancelled: "#dc2626",
     };
 
-    return schedules.map((schedule) => {
-      const color = colors[schedule.status] ?? "#64748b";
+    return schedules
+      .map((schedule) => {
+        const color = colors[schedule.status] ?? "#64748b";
 
-      return {
-        id: String(schedule.id),
-        title: `${schedule.activity} - ${schedule.researcher}`,
-        start: `${schedule.date}T${schedule.startTime}`,
-        end: `${schedule.date}T${schedule.endTime}`,
-        backgroundColor: color,
-        borderColor: color,
-        extendedProps: {
-          schedule,
-        },
-      };
-    });
+        const startTime = convertToISOTime(schedule.startTime);
+        const endTime = convertToISOTime(schedule.endTime);
+
+        if (!startTime || !endTime || !schedule.date) {
+          console.warn("Invalid schedule date or time:", schedule);
+          return null;
+        }
+
+        return {
+          id: String(schedule.id),
+          title: `${schedule.activity} - ${schedule.researcher}`,
+          start: `${schedule.date}T${startTime}`,
+          end: `${schedule.date}T${endTime}`,
+          backgroundColor: color,
+          borderColor: color,
+          extendedProps: {
+            schedule,
+          },
+        };
+      })
+      .filter((event) => event !== null);
   }, [schedules]);
 
   // VIEW SCHEDULE DETAILS
