@@ -127,13 +127,9 @@ export default function ScheduleForm({
       return;
     }
 
-    // Ongoing and Completed are managed by the backend.
-    // New schedules default to Pending.
     const submittedForm: ScheduleData = {
       ...form,
-      status: initialData
-        ? initialData.status
-        : "Pending",
+      status: initialData?.status ?? "Pending",
     };
 
     onSubmit(submittedForm);
@@ -142,7 +138,6 @@ export default function ScheduleForm({
   return (
     <div className="schedule-form-card">
 
-      {/* FORM HEADER */}
       <div className="form-heading">
         <h2>
           {initialData
@@ -156,13 +151,10 @@ export default function ScheduleForm({
       </div>
 
       <form onSubmit={handleSubmit}>
-
         <div className="form-grid">
 
-          {/* RESEARCH TITLE */}
           <div className="form-group full-width">
             <label>Research Title</label>
-
             <input
               name="researchTitle"
               value={form.researchTitle}
@@ -172,10 +164,8 @@ export default function ScheduleForm({
             />
           </div>
 
-          {/* RESEARCHER */}
           <div className="form-group">
             <label>Researcher / Proponent</label>
-
             <input
               name="researcher"
               value={form.researcher}
@@ -185,10 +175,8 @@ export default function ScheduleForm({
             />
           </div>
 
-          {/* ACTIVITY */}
           <div className="form-group">
             <label>Research Activity</label>
-
             <select
               name="activity"
               value={form.activity}
@@ -202,10 +190,8 @@ export default function ScheduleForm({
             </select>
           </div>
 
-          {/* DATE */}
           <div className="form-group">
             <label>Schedule Date</label>
-
             <input
               type="date"
               name="date"
@@ -215,10 +201,8 @@ export default function ScheduleForm({
             />
           </div>
 
-          {/* VENUE */}
           <div className="form-group">
             <label>Venue</label>
-
             <input
               name="venue"
               value={form.venue}
@@ -228,7 +212,6 @@ export default function ScheduleForm({
             />
           </div>
 
-          {/* START TIME */}
           <TimeInput
             label="Start Time"
             value={form.startTime}
@@ -240,7 +223,6 @@ export default function ScheduleForm({
             }
           />
 
-          {/* END TIME */}
           <TimeInput
             label="End Time"
             value={form.endTime}
@@ -252,10 +234,8 @@ export default function ScheduleForm({
             }
           />
 
-          {/* PANEL CHAIR */}
           <div className="form-group">
             <label>Panel Chair</label>
-
             <input
               name="panelChair"
               value={form.panelChair}
@@ -265,36 +245,9 @@ export default function ScheduleForm({
             />
           </div>
 
-          {/* STATUS */}
-          <div className="form-group">
-            <label>Schedule Status</label>
-
-            <select
-              name="status"
-              value={form.status}
-              onChange={handleChange}
-              disabled={Boolean(
-                initialData &&
-                (initialData.status === "Ongoing" ||
-                  initialData.status === "Completed")
-              )}
-            >
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-
-            <small className="status-note">
-              Ongoing and Completed statuses are updated automatically
-              according to the scheduled time.
-            </small>
-          </div>
-
         </div>
 
-        {/* FORM ACTIONS */}
         <div className="form-actions">
-
           <button
             type="button"
             onClick={onCancel}
@@ -310,9 +263,7 @@ export default function ScheduleForm({
               ? "Update Schedule"
               : "Save Schedule"}
           </button>
-
         </div>
-
       </form>
     </div>
   );

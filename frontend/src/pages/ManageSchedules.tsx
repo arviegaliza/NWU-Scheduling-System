@@ -1,8 +1,17 @@
+
 import { useCallback, useEffect, useState } from "react";
-import { Search, Trash2, RefreshCw, Pencil } from "lucide-react";
+import {
+  Search,
+  Trash2,
+  RefreshCw,
+  Pencil,
+  Ban,
+} from "lucide-react";
+
 import Schedule, {
   type ScheduleData,
 } from "../components/schedules/ScheduleForm";
+
 import { socket } from "../socket";
 import "../styles/manageSchedules.css";
 
@@ -23,7 +32,9 @@ export default function ManageSchedules() {
   const [editingSchedule, setEditingSchedule] =
     useState<ScheduleRecord | null>(null);
   const [saving, setSaving] = useState(false);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
 
+  // FETCH SCHEDULES
   const fetchSchedules = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
@@ -52,7 +63,7 @@ export default function ManageSchedules() {
     }
   }, []);
 
-  // Initial load and real-time updates from the backend.
+  // INITIAL LOAD AND REAL-TIME UPDATES
   useEffect(() => {
     fetchSchedules();
 
@@ -67,6 +78,12 @@ export default function ManageSchedules() {
     };
   }, [fetchSchedules]);
 
+  // CHECK IF SCHEDULE CAN STILL BE EDITED OR CANCELLED
+  const canManageSchedule = (status: string) => {
+    return status === "Pending" || status === "Approved";
+  };
+
+  // UPDATE SCHEDULE
   const handleUpdateSchedule = async (
     updatedSchedule: ScheduleData
   ) => {
@@ -80,12 +97,17 @@ export default function ManageSchedules() {
         `${API_URL}/${editingSchedule.id}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedSchedule),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...updatedSchedule,
+            status: editingSchedule.status,
+          }),
         }
       );
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(
@@ -95,9 +117,11 @@ export default function ManageSchedules() {
 
       await fetchSchedules(false);
       setEditingSchedule(null);
+
       alert("Schedule updated successfully!");
     } catch (err) {
       console.error("Update schedule error:", err);
+
       alert(
         err instanceof Error
           ? err.message
@@ -108,10 +132,68 @@ export default function ManageSchedules() {
     }
   };
 
+  // CANCEL SCHEDULE
+  const handleCancelSchedule = async (
+    schedule: ScheduleRecord
+  ) => {
+    if (!canManageSchedule(schedule.status)) {
+      alert("This schedule can no longer be cancelled.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel this schedule?\n\n${schedule.researchTitle}`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setCancellingId(schedule.id);
+      setError("");
+
+      const response = await fetch(
+        `${API_URL}/${schedule.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...schedule,
+            status: "Cancelled",
+          }),
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to cancel schedule."
+        );
+      }
+
+      await fetchSchedules(false);
+
+      alert("Schedule cancelled successfully!");
+    } catch (err) {
+      console.error("Cancel schedule error:", err);
+
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Unable to cancel schedule. Please try again."
+      );
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  // DELETE SCHEDULE
   const deleteSchedule = async (id: number) => {
     if (
       !window.confirm(
-        "Are you sure you want to delete this schedule?"
+        "Are you sure you want to permanently delete this schedule?"
       )
     ) {
       return;
@@ -126,7 +208,6 @@ export default function ManageSchedules() {
         throw new Error("Failed to delete schedule.");
       }
 
-      // The backend also broadcasts the deletion to other pages.
       await fetchSchedules(false);
     } catch (err) {
       console.error("Delete schedule error:", err);
@@ -134,7 +215,7 @@ export default function ManageSchedules() {
     }
   };
 
-  // Use the status supplied by the backend.
+  // SEARCH AND FILTER
   const filteredSchedules = schedules.filter((schedule) => {
     const searchValue = search.toLowerCase();
 
@@ -154,11 +235,13 @@ export default function ManageSchedules() {
 
   return (
     <div className="page-container manage-schedules-page">
+
+      {/* PAGE HEADER */}
       <div className="page-heading">
         <div>
           <h1>Manage Schedules</h1>
           <p>
-            View, search, edit, and manage existing research schedules.
+            View, search, edit, cancel, and manage existing research schedules.
           </p>
         </div>
 
@@ -177,9 +260,12 @@ export default function ManageSchedules() {
       </div>
 
       <div className="content-card">
+
+        {/* TOOLBAR */}
         <div className="toolbar">
           <div className="search-box">
             <Search size={18} />
+
             <input
               type="text"
               value={search}
@@ -201,8 +287,11 @@ export default function ManageSchedules() {
           </select>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">{error}</div>
+        )}
 
+        {/* SCHEDULE TABLE */}
         <div className="table-wrapper">
           <table className="data-table">
             <thead>
@@ -225,7 +314,11 @@ export default function ManageSchedules() {
                 </tr>
               ) : filteredSchedules.length > 0 ? (
                 filteredSchedules.map((schedule) => {
-                  const status = String(schedule.status || "Pending");
+                  const status = String(
+                    schedule.status || "Pending"
+                  );
+
+                  const canManage = canManageSchedule(status);
 
                   return (
                     <tr key={schedule.id}>
@@ -233,37 +326,67 @@ export default function ManageSchedules() {
                       <td>{schedule.researcher}</td>
                       <td>{schedule.activity}</td>
                       <td>{schedule.date}</td>
+
                       <td>
                         {schedule.startTime} - {schedule.endTime}
                       </td>
+
                       <td>{schedule.venue}</td>
+
                       <td>
-                        <span className={`status ${status.toLowerCase()}`}>
+                        <span
+                          className={`status ${status.toLowerCase()}`}
+                        >
                           {status === "Ongoing" && (
                             <span className="ongoing-indicator" />
                           )}
                           {status}
                         </span>
                       </td>
+
                       <td>
                         <div className="schedule-actions">
-                          <button
-                            type="button"
-                            className="edit-icon"
-                            onClick={() => setEditingSchedule(schedule)}
-                            title="Edit schedule"
-                          >
-                            <Pencil size={17} />
-                          </button>
+
+                          {canManage && (
+                            <>
+                              <button
+                                type="button"
+                                className="edit-icon"
+                                onClick={() =>
+                                  setEditingSchedule(schedule)
+                                }
+                                title="Edit schedule"
+                              >
+                                <Pencil size={17} />
+                              </button>
+
+                              <button
+                                type="button"
+                                className="cancel-icon"
+                                onClick={() =>
+                                  handleCancelSchedule(schedule)
+                                }
+                                disabled={
+                                  cancellingId === schedule.id
+                                }
+                                title="Cancel schedule"
+                              >
+                                <Ban size={17} />
+                              </button>
+                            </>
+                          )}
 
                           <button
                             type="button"
                             className="danger-icon"
-                            onClick={() => deleteSchedule(schedule.id)}
+                            onClick={() =>
+                              deleteSchedule(schedule.id)
+                            }
                             title="Delete schedule"
                           >
                             <Trash2 size={17} />
                           </button>
+
                         </div>
                       </td>
                     </tr>
@@ -279,16 +402,21 @@ export default function ManageSchedules() {
         </div>
       </div>
 
+      {/* EDIT SCHEDULE MODAL */}
       {editingSchedule && (
         <div
           className="schedule-edit-overlay"
           onClick={(e) => {
-            if (e.target === e.currentTarget && !saving) {
+            if (
+              e.target === e.currentTarget &&
+              !saving
+            ) {
               setEditingSchedule(null);
             }
           }}
         >
           <div className="schedule-edit-modal">
+
             <div className="schedule-edit-header">
               <div>
                 <h2>Edit Schedule</h2>
@@ -319,6 +447,7 @@ export default function ManageSchedules() {
                 Saving changes...
               </div>
             )}
+
           </div>
         </div>
       )}

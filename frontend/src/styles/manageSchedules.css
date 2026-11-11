@@ -298,3 +298,31 @@
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
 }
 
+.cancel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  border: none;
+  border-radius: 6px;
+  background: #fff7ed;
+  color: #ea580c;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-icon:hover {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.cancel-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.schedule-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
