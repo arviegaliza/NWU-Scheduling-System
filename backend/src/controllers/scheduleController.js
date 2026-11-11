@@ -226,10 +226,13 @@ exports.getScheduleById = async (req, res) => {
 // CREATE SCHEDULE
 exports.createSchedule = async (req, res) => {
   try {
+    console.log("CREATE SCHEDULE REQUEST:", req.body);
+
     const validation = validateSchedule(req.body);
 
     if (validation.error) {
       return res.status(400).json({
+        success: false,
         message: validation.error,
       });
     }
@@ -245,9 +248,14 @@ exports.createSchedule = async (req, res) => {
 
     if (!ALLOWED_STATUSES.includes(status)) {
       return res.status(400).json({
+        success: false,
         message: "Invalid schedule status.",
       });
     }
+
+    const panelistsJSON = JSON.stringify(
+      validation.normalizedPanelists
+    );
 
     const result = await pool.query(
       `
@@ -283,7 +291,7 @@ exports.createSchedule = async (req, res) => {
         validation.normalizedStart,
         validation.normalizedEnd,
         venue,
-        JSON.stringify(validation.normalizedPanelists),
+        panelistsJSON,
         status,
       ]
     );
@@ -292,15 +300,25 @@ exports.createSchedule = async (req, res) => {
 
     broadcastScheduleUpdate(req, "created", newSchedule);
 
-    res.status(201).json(newSchedule);
-  } catch (error) {
-    console.error("Create schedule error:", error.message);
+    return res.status(201).json({
+      success: true,
+      message: "Schedule created successfully.",
+      schedule: newSchedule,
+    });
 
-    res.status(500).json({
+  } catch (error) {
+    console.error("CREATE SCHEDULE ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
       message: "Failed to create schedule.",
+      error: error.message,
+      detail: error.detail || null,
+      code: error.code || null,
     });
   }
 };
+
 
 // UPDATE SCHEDULE
 exports.updateSchedule = async (req, res) => {
