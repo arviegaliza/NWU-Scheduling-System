@@ -9,7 +9,7 @@ const ALLOWED_STATUSES = [
   "Cancelled",
 ];
 
-// Broadcast schedule changes to connected frontend clients.
+// BROADCAST SCHEDULE UPDATES
 function broadcastScheduleUpdate(req, action, schedule = null, id = null) {
   const io = req.app.get("io");
 
@@ -26,7 +26,7 @@ function broadcastScheduleUpdate(req, action, schedule = null, id = null) {
   });
 }
 
-// Accepts 24-hour values (16:00) or 12-hour values (4:00 PM).
+// NORMALIZE TIME
 function normalizeTime(value) {
   if (typeof value !== "string") return null;
 
@@ -41,17 +41,21 @@ function normalizeTime(value) {
     const minute = Number(twelveHourMatch[2]);
     const period = twelveHourMatch[3].toUpperCase();
 
-    if (hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+    if (hour < 1 || hour > 12 || minute > 59) {
       return null;
     }
 
     if (period === "AM" && hour === 12) hour = 0;
     if (period === "PM" && hour !== 12) hour += 12;
 
-    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    return `${String(hour).padStart(2, "0")}:${String(
+      minute
+    ).padStart(2, "0")}`;
   }
 
-  const twentyFourHourMatch = time.match(/^(\d{2}):(\d{2})$/);
+  const twentyFourHourMatch = time.match(
+    /^(\d{2}):(\d{2})$/
+  );
 
   if (twentyFourHourMatch) {
     const hour = Number(twentyFourHourMatch[1]);
@@ -59,27 +63,57 @@ function normalizeTime(value) {
 
     if (hour > 23 || minute > 59) return null;
 
-    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    return `${String(hour).padStart(2, "0")}:${String(
+      minute
+    ).padStart(2, "0")}`;
   }
 
   return null;
 }
 
-// Accepts an array of panelist names or comma-separated names.
+// NORMALIZE PANELISTS
+// Panelists represent the assigned Panel Chair name(s).
 function normalizePanelists(value) {
   if (!value) return [];
 
-  const names = Array.isArray(value)
-    ? value
-    : typeof value === "string"
-      ? value.split(",")
-      : [];
+  let names = value;
 
-  return names
-    .map((name) => String(name).trim())
-    .filter(Boolean);
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (!trimmed) return [];
+
+    // Support JSON array strings.
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+
+        if (Array.isArray(parsed)) {
+          names = parsed;
+        } else {
+          names = [trimmed];
+        }
+      } catch {
+        names = trimmed.split(",");
+      }
+    } else {
+      names = trimmed.split(",");
+    }
+  }
+
+  if (!Array.isArray(names)) return [];
+
+  return [
+    ...new Set(
+      names
+        .filter((name) => typeof name === "string")
+        .map((name) => name.trim())
+        .filter(Boolean)
+    ),
+  ];
 }
 
+// VALIDATE SCHEDULE
 function validateSchedule(body) {
   const {
     researchTitle,
@@ -110,7 +144,8 @@ function validateSchedule(body) {
 
   if (!normalizedStart || !normalizedEnd) {
     return {
-      error: "Invalid time. Please use a valid time such as 10:00 AM or 4:00 PM.",
+      error:
+        "Invalid time. Please use a valid time such as 10:00 AM or 4:00 PM.",
     };
   }
 
@@ -127,6 +162,7 @@ function validateSchedule(body) {
   };
 }
 
+// REUSABLE SCHEDULE SELECT
 const scheduleSelect = `
   SELECT
     id,
@@ -357,7 +393,11 @@ exports.updateSchedule = async (req, res) => {
 exports.deleteSchedule = async (req, res) => {
   try {
     const result = await pool.query(
-      "DELETE FROM schedules WHERE id = $1 RETURNING id",
+      `
+        DELETE FROM schedules
+        WHERE id = $1
+        RETURNING id
+      `,
       [req.params.id]
     );
 
