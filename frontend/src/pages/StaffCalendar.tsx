@@ -1,4 +1,6 @@
+
 import { useCallback, useEffect, useMemo, useState } from "react";
+
 import {
   RefreshCw,
   CalendarDays,
@@ -7,7 +9,9 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Users,
 } from "lucide-react";
+
 import { socket } from "../socket";
 import "./StaffCalendar.css";
 
@@ -21,6 +25,7 @@ interface ScheduleRecord {
   endTime: string;
   venue: string;
   panelChair?: string;
+  panelists?: string[] | string;
   status: string;
 }
 
@@ -72,6 +77,8 @@ function formatDate(date: Date): string {
 
 function getStatusClass(status: string): string {
   switch (status?.toLowerCase()) {
+    case "upcoming":
+      return "upcoming";
     case "ongoing":
       return "ongoing";
     case "completed":
@@ -83,6 +90,22 @@ function getStatusClass(status: string): string {
     default:
       return "pending";
   }
+}
+
+// Supports panelists returned as either an array or a comma-separated string.
+function getPanelistNames(panelists?: string[] | string): string[] {
+  if (!panelists) return [];
+
+  if (Array.isArray(panelists)) {
+    return panelists
+      .map((name) => String(name).trim())
+      .filter(Boolean);
+  }
+
+  return panelists
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
 }
 
 export default function StaffCalendar() {
@@ -101,9 +124,11 @@ export default function StaffCalendar() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // FETCH SCHEDULES
   const fetchSchedules = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
+
       setError("");
 
       const response = await fetch(API_URL);
@@ -121,13 +146,18 @@ export default function StaffCalendar() {
       setSchedules(data);
     } catch (err) {
       console.error("Staff calendar error:", err);
-      setError("Unable to load schedules. Please try again.");
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load schedules. Please try again."
+      );
     } finally {
       if (showLoading) setLoading(false);
     }
   }, []);
 
-  // Initial fetch and real-time updates.
+  // INITIAL FETCH AND REAL-TIME UPDATES
   useEffect(() => {
     fetchSchedules();
 
@@ -142,6 +172,7 @@ export default function StaffCalendar() {
     };
   }, [fetchSchedules]);
 
+  // GROUP SCHEDULES BY DATE
   const schedulesByDate = useMemo(() => {
     const grouped: Record<string, ScheduleRecord[]> = {};
 
@@ -160,6 +191,7 @@ export default function StaffCalendar() {
     return grouped;
   }, [schedules]);
 
+  // GENERATE CALENDAR DAYS
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -185,15 +217,28 @@ export default function StaffCalendar() {
   }, [currentMonth]);
 
   const selectedSchedules = schedulesByDate[selectedDate] || [];
+
   const todayKey = dateKey(new Date());
 
+  // UPCOMING MEANS THE SCHEDULE'S START DATE/TIME HAS NOT ARRIVED.
   const upcomingCount = schedules.filter((schedule) => {
     const key = getScheduleDateKey(schedule.date);
 
+    if (!key) return false;
+
+    const status = schedule.status?.toLowerCase();
+
+    if (status === "cancelled" || status === "completed") {
+      return false;
+    }
+
+    const startDateTime = new Date(
+      `${key}T${convertTo24Hour(schedule.startTime)}`
+    );
+
     return (
-      key >= todayKey &&
-      schedule.status?.toLowerCase() !== "cancelled" &&
-      schedule.status?.toLowerCase() !== "completed"
+      !Number.isNaN(startDateTime.getTime()) &&
+      startDateTime.getTime() > Date.now()
     );
   }).length;
 
@@ -205,16 +250,61 @@ export default function StaffCalendar() {
     (schedule) => schedule.status?.toLowerCase() === "ongoing"
   ).length;
 
+  // SUPPORT 12-HOUR AND 24-HOUR TIME FORMATS.
+  function convertTo24Hour(time: string): string {
+    if (!time) return "";
+
+    const value = time.trim();
+
+    const twelveHourMatch = value.match(
+      /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i
+    );
+
+    if (twelveHourMatch) {
+      let hour = Number(twelveHourMatch[1]);
+      const minute = Number(twelveHourMatch[2]);
+      const period = twelveHourMatch[3].toUpperCase();
+
+      if (hour < 1 || hour > 12 || minute > 59) return "";
+
+      if (period === "AM" && hour === 12) hour = 0;
+      if (period === "PM" && hour !== 12) hour += 12;
+
+      return `${String(hour).padStart(2, "0")}:${String(
+        minute
+      ).padStart(2, "0")}:00`;
+    }
+
+    const twentyFourHourMatch = value.match(
+      /^(\d{1,2}):(\d{2})/
+    );
+
+    if (twentyFourHourMatch) {
+      const hour = Number(twentyFourHourMatch[1]);
+      const minute = Number(twentyFourHourMatch[2]);
+
+      if (hour > 23 || minute > 59) return "";
+
+      return `${String(hour).padStart(2, "0")}:${String(
+        minute
+      ).padStart(2, "0")}:00`;
+    }
+
+    return "";
+  }
+
+  // MONTH NAVIGATION
   const changeMonth = (direction: number) => {
-    setCurrentMonth((previous) =>
-      new Date(
+    setCurrentMonth((previous) => {
+      return new Date(
         previous.getFullYear(),
         previous.getMonth() + direction,
         1
-      )
-    );
+      );
+    });
   };
 
+  // RETURN TO TODAY
   const showToday = () => {
     const today = new Date();
 
@@ -225,6 +315,7 @@ export default function StaffCalendar() {
     setSelectedDate(dateKey(today));
   };
 
+  // SELECT A DATE
   const handleDateClick = (key: string) => {
     setSelectedDate(key);
     setIsModalOpen(true);
@@ -234,6 +325,7 @@ export default function StaffCalendar() {
     setIsModalOpen(false);
   };
 
+  // CLOSE MODAL USING ESCAPE KEY
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeModal();
@@ -253,6 +345,8 @@ export default function StaffCalendar() {
 
   return (
     <div className="staff-calendar">
+
+      {/* HEADER */}
       <div className="staff-calendar-header">
         <div>
           <h2>Research Schedule Calendar</h2>
@@ -272,6 +366,7 @@ export default function StaffCalendar() {
         </button>
       </div>
 
+      {/* SUMMARY CARDS */}
       <div className="staff-stats">
         <div className="staff-stat-card">
           <p>Total Schedules</p>
@@ -294,9 +389,18 @@ export default function StaffCalendar() {
         </div>
       </div>
 
-      {error && <div className="staff-error">{error}</div>}
+      {error && (
+        <div className="staff-error">
+          {error}
+          <button type="button" onClick={() => fetchSchedules()}>
+            Try Again
+          </button>
+        </div>
+      )}
 
+      {/* CALENDAR PANEL */}
       <div className="staff-calendar-panel">
+
         <div className="staff-month-toolbar">
           <div>
             <h3>{monthLabel}</h3>
@@ -332,6 +436,7 @@ export default function StaffCalendar() {
           </div>
         </div>
 
+        {/* CALENDAR GRID */}
         <div className="staff-calendar-grid">
           {WEEKDAYS.map((day) => (
             <div className="staff-weekday" key={day}>
@@ -399,15 +504,18 @@ export default function StaffCalendar() {
           })}
         </div>
 
+        {/* LEGEND */}
         <div className="staff-calendar-legend">
           <span><i className="legend-approved" /> Approved</span>
           <span><i className="legend-pending" /> Pending</span>
+          <span><i className="legend-upcoming" /> Upcoming</span>
           <span><i className="legend-ongoing" /> Ongoing</span>
           <span><i className="legend-completed" /> Completed</span>
           <span><i className="legend-cancelled" /> Cancelled</span>
         </div>
       </div>
 
+      {/* SCHEDULE DETAILS MODAL */}
       {isModalOpen && (
         <div
           className="staff-modal-overlay"
@@ -425,6 +533,7 @@ export default function StaffCalendar() {
                 <h3 id="staff-modal-title">
                   Scheduled Activities
                 </h3>
+
                 <p>
                   {formatDate(
                     new Date(`${selectedDate}T12:00:00`)
@@ -455,44 +564,85 @@ export default function StaffCalendar() {
                   </p>
                 </div>
               ) : (
-                selectedSchedules.map((schedule) => (
-                  <div
-                    className="staff-schedule-item"
-                    key={schedule.id}
-                  >
-                    <div className="staff-schedule-top">
-                      <div>
-                        <h4>{schedule.researchTitle}</h4>
-                        <p className="staff-researcher">
-                          {schedule.researcher}
-                        </p>
-                        <p className="staff-activity">
-                          {schedule.activity}
+                selectedSchedules.map((schedule) => {
+                  const panelistNames = getPanelistNames(
+                    schedule.panelists
+                  );
+
+                  return (
+                    <div
+                      className="staff-schedule-item"
+                      key={schedule.id}
+                    >
+                      <div className="staff-schedule-top">
+                        <div>
+                          <h4>{schedule.researchTitle}</h4>
+
+                          <p className="staff-researcher">
+                            {schedule.researcher}
+                          </p>
+
+                          <p className="staff-activity">
+                            {schedule.activity}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`staff-status ${getStatusClass(
+                            schedule.status
+                          )}`}
+                        >
+                          {schedule.status}
+                        </span>
+                      </div>
+
+                      {/* DATE, TIME AND VENUE */}
+                      <div className="staff-schedule-details">
+                        <span className="staff-detail">
+                          <Clock size={16} />
+                          {schedule.startTime} - {schedule.endTime}
+                        </span>
+
+                        <span className="staff-detail">
+                          <MapPin size={16} />
+                          {schedule.venue}
+                        </span>
+                      </div>
+
+                      {/* PANEL CHAIR */}
+                      <div className="staff-panel-section">
+                        <h5>
+                          <Users size={16} />
+                          Panel Chair
+                        </h5>
+
+                        <p>
+                          {schedule.panelChair || "Not assigned"}
                         </p>
                       </div>
 
-                      <span
-                        className={`staff-status ${getStatusClass(
-                          schedule.status
-                        )}`}
-                      >
-                        {schedule.status}
-                      </span>
-                    </div>
+                      {/* PANELISTS */}
+                      <div className="staff-panel-section">
+                        <h5>
+                          <Users size={16} />
+                          Panelists
+                        </h5>
 
-                    <div className="staff-schedule-details">
-                      <span className="staff-detail">
-                        <Clock size={16} />
-                        {schedule.startTime} - {schedule.endTime}
-                      </span>
-
-                      <span className="staff-detail">
-                        <MapPin size={16} />
-                        {schedule.venue}
-                      </span>
+                        {panelistNames.length > 0 ? (
+                          <ul className="staff-panelist-list">
+                            {panelistNames.map((name, index) => (
+                              <li key={`${schedule.id}-${index}`}>
+                                {name}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>Not assigned</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
