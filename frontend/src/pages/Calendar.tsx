@@ -1,8 +1,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
-
-import { Plus, RefreshCw, Users } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -19,75 +17,18 @@ import { socket } from "../socket";
 
 import "../styles/calendar.css";
 
-const SERVER_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:5000"
-).replace(/\/$/, "");
+const SERVER_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const API_URL = `${SERVER_URL}/api/schedules`;
 
-type CalendarSchedule = ScheduleData & {
-  panelists: string[];
-};
-
-// Convert panelist data from the API into an array.
-function normalizePanelists(value: unknown): string[] {
-  if (!value) return [];
-
-  if (Array.isArray(value)) {
-    return value
-      .flatMap((item) => String(item).split(/[,\n;]/))
-      .map((name) => name.trim())
-      .filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-
-    if (!trimmed) return [];
-
-    try {
-      const parsed = JSON.parse(trimmed);
-
-      if (Array.isArray(parsed)) {
-        return normalizePanelists(parsed);
-      }
-    } catch {
-      // Support comma-separated or newline-separated names.
-    }
-
-    return trimmed
-      .split(/[,\n;]/)
-      .map((name) => name.trim())
-      .filter(Boolean);
-  }
-
-  return [];
-}
-
-// Normalize database records before displaying them.
-function normalizeSchedule(
-  record: Record<string, unknown>
-): CalendarSchedule {
-  return {
-    id: record.id as number | string,
-    researchTitle: String(record.researchTitle ?? record.research_title ?? ""),
-    researcher: String(record.researcher ?? ""),
-    activity: String(record.activity ?? ""),
-    date: String(record.date ?? "").slice(0, 10),
-    startTime: String(record.startTime ?? record.start_time ?? ""),
-    endTime: String(record.endTime ?? record.end_time ?? ""),
-    venue: String(record.venue ?? ""),
-    panelists: normalizePanelists(record.panelists),
-    status: (record.status ?? "Pending") as ScheduleData["status"],
-  };
-}
-
-// Convert 12-hour or 24-hour time into 24-hour format.
+// Convert 12-hour time into 24-hour time for FullCalendar.
 const convertToISOTime = (time: string): string => {
   if (!time) return "";
 
   const normalizedTime = time.trim();
 
+  // Already in 24-hour format.
   const twentyFourHourMatch = normalizedTime.match(
     /^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/
   );
@@ -101,6 +42,7 @@ const convertToISOTime = (time: string): string => {
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   }
 
+  // Convert 12-hour format such as 4:00 PM.
   const twelveHourMatch = normalizedTime.match(
     /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i
   );
@@ -135,7 +77,7 @@ const formatTime = (time: string): string => {
 };
 
 export default function Calendar() {
-  const [schedules, setSchedules] = useState<CalendarSchedule[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -143,12 +85,14 @@ export default function Calendar() {
   const [showForm, setShowForm] = useState(false);
 
   const [selectedSchedule, setSelectedSchedule] =
-    useState<CalendarSchedule | null>(null);
+    useState<ScheduleData | null>(null);
 
   // FETCH SCHEDULES
   const fetchSchedules = useCallback(async (showLoading = true) => {
     try {
-      if (showLoading) setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
 
       setError("");
 
@@ -158,36 +102,36 @@ export default function Calendar() {
         throw new Error("Unable to load schedules.");
       }
 
-      const data = await response.json();
+      const data: ScheduleData[] = await response.json();
 
       if (!Array.isArray(data)) {
         throw new Error("Invalid schedule data received from the server.");
       }
 
-      const normalizedData = data.map((record) =>
-        normalizeSchedule(record as Record<string, unknown>)
-      );
-
-      setSchedules(normalizedData);
+      setSchedules(data);
 
       // Keep selected schedule details updated.
       setSelectedSchedule((previous) => {
         if (!previous) return null;
 
-        return (
-          normalizedData.find(
-            (schedule) => String(schedule.id) === String(previous.id)
-          ) ?? null
+        const updatedSchedule = data.find(
+          (schedule) => String(schedule.id) === String(previous.id)
         );
+
+        return updatedSchedule ?? null;
       });
     } catch (err) {
       console.error("Fetch schedules error:", err);
 
       setError(
-        err instanceof Error ? err.message : "Something went wrong."
+        err instanceof Error
+          ? err.message
+          : "Something went wrong."
       );
     } finally {
-      if (showLoading) setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -212,20 +156,15 @@ export default function Calendar() {
     try {
       setSaving(true);
 
-      const payload = {
-        ...schedule,
-        panelists: normalizePanelists(schedule.panelists),
-      };
-
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(schedule),
       });
 
-      const result = await response.json().catch(() => ({}));
+      const result = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -250,17 +189,6 @@ export default function Calendar() {
       setSaving(false);
     }
   };
-
-  // SUMMARY COUNTS
-  const summary = useMemo(() => {
-    return {
-      total: schedules.length,
-      approved: schedules.filter((s) => s.status === "Approved").length,
-      upcoming: schedules.filter((s) => s.status === "Pending").length,
-      ongoing: schedules.filter((s) => s.status === "Ongoing").length,
-      completed: schedules.filter((s) => s.status === "Completed").length,
-    };
-  }, [schedules]);
 
   // CONVERT DATABASE RECORDS INTO CALENDAR EVENTS
   const events = useMemo(() => {
@@ -301,8 +229,7 @@ export default function Calendar() {
 
   // VIEW SCHEDULE DETAILS
   const handleEventClick = (info: EventClickArg) => {
-    const schedule = info.event.extendedProps
-      .schedule as CalendarSchedule;
+    const schedule = info.event.extendedProps.schedule as ScheduleData;
 
     setSelectedSchedule(schedule);
   };
@@ -324,7 +251,6 @@ export default function Calendar() {
             className="calendar-refresh"
             onClick={() => fetchSchedules()}
             disabled={loading}
-            type="button"
           >
             <RefreshCw size={17} />
             Refresh
@@ -333,7 +259,6 @@ export default function Calendar() {
           <button
             className="calendar-add-button"
             onClick={() => setShowForm(true)}
-            type="button"
           >
             <Plus size={18} />
             Add Schedule
@@ -341,42 +266,42 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* ERROR MESSAGE */}
-      {error && (
-        <div className="calendar-message error">
-          {error}
-          <button onClick={() => fetchSchedules()} type="button">
-            Try Again
-          </button>
-        </div>
-      )}
-
       {/* SUMMARY CARDS */}
       <div className="calendar-summary">
+
         <div className="calendar-stat">
           <span>Total Schedules</span>
-          <strong>{summary.total}</strong>
+          <strong>{schedules.length}</strong>
         </div>
 
         <div className="calendar-stat">
           <span>Approved</span>
-          <strong>{summary.approved}</strong>
+          <strong>
+            {schedules.filter((s) => s.status === "Approved").length}
+          </strong>
         </div>
 
         <div className="calendar-stat">
           <span>Upcoming</span>
-          <strong>{summary.upcoming}</strong>
+          <strong>
+            {schedules.filter((s) => s.status === "Pending").length}
+          </strong>
         </div>
 
         <div className="calendar-stat">
           <span>Ongoing</span>
-          <strong>{summary.ongoing}</strong>
+          <strong>
+            {schedules.filter((s) => s.status === "Ongoing").length}
+          </strong>
         </div>
 
         <div className="calendar-stat">
           <span>Completed</span>
-          <strong>{summary.completed}</strong>
+          <strong>
+            {schedules.filter((s) => s.status === "Completed").length}
+          </strong>
         </div>
+
       </div>
 
       {/* STATUS LEGEND */}
@@ -404,13 +329,18 @@ export default function Calendar() {
 
       {/* CALENDAR */}
       <div className="calendar-card">
+
         {loading ? (
           <div className="calendar-message">
             Loading schedules...
           </div>
         ) : error ? (
           <div className="calendar-message error">
-            Unable to display calendar schedules.
+            {error}
+
+            <button onClick={() => fetchSchedules()}>
+              Try Again
+            </button>
           </div>
         ) : (
           <FullCalendar
@@ -441,6 +371,7 @@ export default function Calendar() {
             }}
           />
         )}
+
       </div>
 
       {/* ADD SCHEDULE MODAL */}
@@ -489,7 +420,6 @@ export default function Calendar() {
               <button
                 className="modal-close"
                 onClick={() => setSelectedSchedule(null)}
-                type="button"
               >
                 ×
               </button>
@@ -503,8 +433,8 @@ export default function Calendar() {
               </div>
 
               <div>
-                <span>Proponents</span>
-                <strong>{selectedSchedule.researcher || "Not specified"}</strong>
+                <span>Researcher / Proponent</span>
+                <strong>{selectedSchedule.researcher}</strong>
               </div>
 
               <div>
@@ -525,25 +455,14 @@ export default function Calendar() {
                 <strong>{selectedSchedule.venue}</strong>
               </div>
 
-              {/* PANELISTS */}
-              <div className="schedule-detail-panelists">
-                <span>
-                  <Users size={16} />
-                  Panelists
-                </span>
-
-                {selectedSchedule.panelists.length > 0 ? (
-                  <ul>
-                    {selectedSchedule.panelists.map((name, index) => (
-                      <li key={`${selectedSchedule.id}-${index}`}>
-                        {name}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <strong>No panelists assigned yet.</strong>
-                )}
-              </div>
+            <div className="details-item">
+  <span>Panelists</span>
+  <strong>
+    {selectedSchedule.panelists?.length
+      ? selectedSchedule.panelists.join(", ")
+      : "No panelists assigned"}
+  </strong>
+</div>
 
               <div>
                 <span>Status</span>
@@ -560,7 +479,6 @@ export default function Calendar() {
             <button
               className="modal-done"
               onClick={() => setSelectedSchedule(null)}
-              type="button"
             >
               Close Details
             </button>
