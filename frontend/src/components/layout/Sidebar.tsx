@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -10,6 +11,8 @@ import {
   Settings,
   LogOut,
   CalendarClock,
+  Menu,
+  X,
 } from "lucide-react";
 
 const menuItems = [
@@ -23,45 +26,79 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const closeSidebar = () => setIsOpen(false);
+
   return (
-    <aside className="sidebar">
-      <div className="sidebar-brand">
-        <div className="brand-icon">
-          <CalendarClock size={25} />
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        className="mobile-menu-button"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Toggle navigation menu"
+      >
+        {isOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={closeSidebar}
+        />
+      )}
+
+      <aside className={`sidebar ${isOpen ? "mobile-open" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="brand-icon">
+            <CalendarClock size={25} />
+          </div>
+
+          <div>
+            <h2>Research Scheduler</h2>
+            <span>ADMIN PORTAL</span>
+          </div>
+
+          {/* Mobile close button */}
+          <button
+            className="mobile-sidebar-close"
+            onClick={closeSidebar}
+            aria-label="Close navigation menu"
+          >
+            <X size={22} />
+          </button>
         </div>
-        <div>
-          <h2>Research Scheduler</h2>
-          <span>ADMIN PORTAL</span>
+
+        <div className="sidebar-label">MAIN MENU</div>
+
+        <nav className="sidebar-menu">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  `sidebar-link ${isActive ? "active" : ""}`
+                }
+              >
+                <Icon size={19} />
+                <span>{item.name}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-bottom">
+          <button className="logout-button">
+            <LogOut size={19} />
+            <span>Logout</span>
+          </button>
         </div>
-      </div>
-
-      <div className="sidebar-label">MAIN MENU</div>
-
-      <nav className="sidebar-menu">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? "active" : ""}`
-              }
-            >
-              <Icon size={19} />
-              <span>{item.name}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
-
-      <div className="sidebar-bottom">
-        <button className="logout-button">
-          <LogOut size={19} />
-          <span>Logout</span>
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
