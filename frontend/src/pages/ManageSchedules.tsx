@@ -279,7 +279,7 @@ export default function ManageSchedules() {
             onChange={(e) => setFilter(e.target.value)}
           >
             <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
+            <option value="Pending">Upcoming</option>
             <option value="Approved">Approved</option>
             <option value="Ongoing">Ongoing</option>
             <option value="Completed">Completed</option>
