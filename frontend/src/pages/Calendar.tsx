@@ -282,7 +282,7 @@ export default function Calendar() {
         </div>
 
         <div className="calendar-stat">
-          <span>Pending</span>
+          <span>Upcoming</span>
           <strong>
             {schedules.filter((s) => s.status === "Pending").length}
           </strong>
