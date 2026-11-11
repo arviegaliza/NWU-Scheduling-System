@@ -18,7 +18,7 @@ export interface ScheduleData {
   startTime: string;
   endTime: string;
   venue: string;
-  panelChair: string;
+  panelists: string[];
   status: ScheduleStatus;
 }
 
@@ -28,7 +28,11 @@ interface ScheduleFormProps {
   onCancel: () => void;
 }
 
-const emptyForm: ScheduleData = {
+type FormValues = Omit<ScheduleData, "panelists"> & {
+  panelists: string;
+};
+
+const emptyForm: FormValues = {
   researchTitle: "",
   researcher: "",
   activity: "Title Defense",
@@ -36,9 +40,48 @@ const emptyForm: ScheduleData = {
   startTime: "",
   endTime: "",
   venue: "",
-  panelChair: "",
+  panelists: "",
   status: "Pending",
 };
+
+// Convert panelist data into a textarea-friendly string.
+function normalizePanelists(
+  panelists?: string[] | string | null
+): string {
+  if (!panelists) return "";
+
+  if (Array.isArray(panelists)) {
+    return panelists.join("\n");
+  }
+
+  const trimmed = panelists.trim();
+
+  if (!trimmed) return "";
+
+  try {
+    const parsed = JSON.parse(trimmed);
+
+    if (Array.isArray(parsed)) {
+      return parsed.join("\n");
+    }
+  } catch {
+    // Existing comma-separated data is supported.
+  }
+
+  return trimmed;
+}
+
+// Convert textarea input into an array of names.
+function parsePanelists(value: string): string[] {
+  return [
+    ...new Set(
+      value
+        .split(/[,\n;]/)
+        .map((name) => name.trim())
+        .filter(Boolean)
+    ),
+  ];
+}
 
 // FORMAT TIME FOR DISPLAY
 function formatTime(time: string) {
@@ -69,7 +112,11 @@ interface TimeInputProps {
   onChange: (value: string) => void;
 }
 
-function TimeInput({ label, value, onChange }: TimeInputProps) {
+function TimeInput({
+  label,
+  value,
+  onChange,
+}: TimeInputProps) {
   return (
     <div className="form-group">
       <label>{label}</label>
@@ -95,16 +142,24 @@ export default function ScheduleForm({
   onSubmit,
   onCancel,
 }: ScheduleFormProps) {
-  const [form, setForm] = useState<ScheduleData>(
-    initialData ?? emptyForm
-  );
+  const [form, setForm] = useState<FormValues>({
+    ...emptyForm,
+    ...initialData,
+    panelists: normalizePanelists(initialData?.panelists),
+  });
 
   useEffect(() => {
-    setForm(initialData ?? emptyForm);
+    setForm({
+      ...emptyForm,
+      ...initialData,
+      panelists: normalizePanelists(initialData?.panelists),
+    });
   }, [initialData]);
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
 
@@ -129,6 +184,7 @@ export default function ScheduleForm({
 
     const submittedForm: ScheduleData = {
       ...form,
+      panelists: parsePanelists(form.panelists),
       status: initialData?.status ?? "Pending",
     };
 
@@ -137,7 +193,6 @@ export default function ScheduleForm({
 
   return (
     <div className="schedule-form-card">
-
       <div className="form-heading">
         <h2>
           {initialData
@@ -153,8 +208,10 @@ export default function ScheduleForm({
       <form onSubmit={handleSubmit}>
         <div className="form-grid">
 
+          {/* RESEARCH TITLE */}
           <div className="form-group full-width">
             <label>Research Title</label>
+
             <input
               name="researchTitle"
               value={form.researchTitle}
@@ -164,19 +221,23 @@ export default function ScheduleForm({
             />
           </div>
 
+          {/* PROPONENTS */}
           <div className="form-group">
-            <label>Researcher / Proponent</label>
+            <label>Proponents</label>
+
             <input
               name="researcher"
               value={form.researcher}
               onChange={handleChange}
-              placeholder="Enter researcher name"
+              placeholder="Enter proponents' names"
               required
             />
           </div>
 
+          {/* RESEARCH ACTIVITY */}
           <div className="form-group">
             <label>Research Activity</label>
+
             <select
               name="activity"
               value={form.activity}
@@ -190,8 +251,10 @@ export default function ScheduleForm({
             </select>
           </div>
 
+          {/* SCHEDULE DATE */}
           <div className="form-group">
             <label>Schedule Date</label>
+
             <input
               type="date"
               name="date"
@@ -201,8 +264,10 @@ export default function ScheduleForm({
             />
           </div>
 
+          {/* VENUE */}
           <div className="form-group">
             <label>Venue</label>
+
             <input
               name="venue"
               value={form.venue}
@@ -212,6 +277,7 @@ export default function ScheduleForm({
             />
           </div>
 
+          {/* START TIME */}
           <TimeInput
             label="Start Time"
             value={form.startTime}
@@ -223,6 +289,7 @@ export default function ScheduleForm({
             }
           />
 
+          {/* END TIME */}
           <TimeInput
             label="End Time"
             value={form.endTime}
@@ -234,19 +301,29 @@ export default function ScheduleForm({
             }
           />
 
-          <div className="form-group">
-            <label>Panel Chair</label>
-            <input
-              name="panelChair"
-              value={form.panelChair}
+          {/* PANELISTS */}
+          <div className="form-group full-width">
+            <label>Panelists</label>
+
+            <textarea
+              name="panelists"
+              value={form.panelists}
               onChange={handleChange}
-              placeholder="Enter panel chair"
-              required
+              placeholder={
+                "Enter panelist names, one per line.\nExample:\nProf. Juan Dela Cruz\nProf. Maria Santos"
+              }
+              rows={4}
             />
+
+            <small className="time-preview">
+              Enter multiple panelist names separated by commas
+              or by placing each name on a new line.
+            </small>
           </div>
 
         </div>
 
+        {/* FORM ACTIONS */}
         <div className="form-actions">
           <button
             type="button"
