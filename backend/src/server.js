@@ -20,6 +20,7 @@ const {
 const app = express();
 const server = http.createServer(app);
 
+// ALLOWED FRONTEND ORIGINS
 const allowedOrigins = [
   "http://localhost:5173",
   "https://nwu-scheduling-system.vercel.app",
@@ -29,58 +30,60 @@ const allowedOrigins = [
   .filter(Boolean)
   .map((origin) => origin.trim().replace(/\/+$/, ""));
 
-// Initialize Socket.IO
+// CORS ORIGIN VALIDATION
+const corsOrigin = (origin, callback) => {
+  if (!origin) {
+    return callback(null, true);
+  }
+
+  const normalizedOrigin = origin.replace(/\/+$/, "");
+
+  if (allowedOrigins.includes(normalizedOrigin)) {
+    return callback(null, true);
+  }
+
+  console.log("Blocked origin:", origin);
+  return callback(new Error("Not allowed by CORS"));
+};
+
+// INITIALIZE SOCKET.IO
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      const normalizedOrigin = origin.replace(/\/+$/, "");
-
-      if (allowedOrigins.includes(normalizedOrigin)) {
-        return callback(null, true);
-      }
-
-      console.log("Socket.IO blocked by CORS:", origin);
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: corsOrigin,
     methods: ["GET", "POST"],
     credentials: true,
   },
+  transports: ["websocket", "polling"],
 });
 
-// Make Socket.IO available to controllers through Express.
+// Make Socket.IO available to controllers
 app.set("io", io);
 
-// Socket.IO connection events
+// SOCKET.IO CONNECTION EVENTS
 io.on("connection", (socket) => {
   console.log("Socket.IO client connected:", socket.id);
 
-  socket.on("disconnect", () => {
-    console.log("Socket.IO client disconnected:", socket.id);
+  socket.on("disconnect", (reason) => {
+    console.log(
+      "Socket.IO client disconnected:",
+      socket.id,
+      reason
+    );
   });
 });
 
-// Express CORS
+// EXPRESS CORS
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      const normalizedOrigin = origin.replace(/\/+$/, "");
-
-      if (allowedOrigins.includes(normalizedOrigin)) {
-        return callback(null, true);
-      }
-
-      console.log("Blocked by CORS:", origin);
-      return callback(new Error("Not allowed by CORS"));
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    origin: corsOrigin,
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
@@ -88,17 +91,18 @@ app.use(
 
 app.use(express.json());
 
+// STATIC UPLOADS
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "../uploads"))
 );
 
-// API routes
+// API ROUTES
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/research-activities", researchActivityRoutes);
 app.use("/api/admin-profile", adminProfileRoutes);
 
-// API health check
+// API HEALTH CHECK
 app.get("/", (req, res) => {
   res.json({
     message: "Research Scheduling API is running.",
@@ -106,14 +110,14 @@ app.get("/", (req, res) => {
   });
 });
 
-// Not found
+// API NOT FOUND
 app.use("/api", (req, res) => {
   res.status(404).json({
     message: "API endpoint not found.",
   });
 });
 
-// Error handler
+// ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error("Server error:", err.message);
 
@@ -130,6 +134,7 @@ app.use((err, req, res, next) => {
   });
 });
 
+// START SERVER
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
@@ -137,6 +142,6 @@ server.listen(PORT, () => {
   console.log("Socket.IO is enabled.");
   console.log("Allowed frontend origins:", allowedOrigins);
 
-  // Start automatic schedule status updates.
+  // Start automatic schedule status updates
   startScheduleStatusScheduler(io);
 });
