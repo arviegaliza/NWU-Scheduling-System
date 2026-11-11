@@ -193,7 +193,7 @@ export default function Calendar() {
   // CONVERT DATABASE RECORDS INTO CALENDAR EVENTS
   const events = useMemo(() => {
     const colors: Record<string, string> = {
-      Upcoming: "#f59e0b",
+      Pending: "#f59e0b",
       Approved: "#2563eb",
       Ongoing: "#8b5cf6",
       Completed: "#16a34a",
@@ -284,7 +284,7 @@ export default function Calendar() {
         <div className="calendar-stat">
           <span>Upcoming</span>
           <strong>
-            {schedules.filter((s) => s.status === "Upcoming").length}
+            {schedules.filter((s) => s.status === "Pending").length}
           </strong>
         </div>
 
