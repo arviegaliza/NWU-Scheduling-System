@@ -16,6 +16,7 @@ const adminProfileRoutes = require("./routes/adminProfileRoutes");
 const {
   startScheduleStatusScheduler,
 } = require("../services/scheduleStatusService");
+
 // INITIALIZE EXPRESS AND HTTP SERVER
 const app = express();
 const server = http.createServer(app);
@@ -54,6 +55,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
 // MAKE SOCKET.IO AVAILABLE TO CONTROLLERS
 app.set("io", io);
 
@@ -93,7 +95,7 @@ app.use(express.json());
 // STATIC UPLOADS
 app.use(
   "/uploads",
-  express.static(path.join(__dirname, "uploads"))
+  express.static(path.join(__dirname, "../uploads"))
 );
 
 // API ROUTES
@@ -141,6 +143,5 @@ server.listen(PORT, () => {
   console.log("Socket.IO is enabled.");
   console.log("Allowed frontend origins:", allowedOrigins);
 
-  // START AUTOMATIC SCHEDULE STATUS UPDATES
   startScheduleStatusScheduler(io);
 });
