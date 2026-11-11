@@ -7,17 +7,16 @@ const { Server } = require("socket.io");
 
 require("dotenv").config();
 
-// Import routes
-
-
+// IMPORT ROUTES
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const researchActivityRoutes = require("./routes/researchActivityRoutes");
 const adminProfileRoutes = require("./routes/adminProfileRoutes");
 
-// Import automatic schedule status service
+// IMPORT AUTOMATIC SCHEDULE STATUS SERVICE
 const {
   startScheduleStatusScheduler,
-} = require("./services/scheduleStatusService");
+} = require("../services/scheduleStatusService");
+// INITIALIZE EXPRESS AND HTTP SERVER
 const app = express();
 const server = http.createServer(app);
 
@@ -51,13 +50,11 @@ const corsOrigin = (origin, callback) => {
 const io = new Server(server, {
   cors: {
     origin: corsOrigin,
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   },
-  transports: ["websocket", "polling"],
 });
-
-// Make Socket.IO available to controllers
+// MAKE SOCKET.IO AVAILABLE TO CONTROLLERS
 app.set("io", io);
 
 // SOCKET.IO CONNECTION EVENTS
@@ -90,12 +87,13 @@ app.use(
   })
 );
 
+// MIDDLEWARE
 app.use(express.json());
 
 // STATIC UPLOADS
 app.use(
   "/uploads",
-  express.static(path.join(__dirname, "../uploads"))
+  express.static(path.join(__dirname, "uploads"))
 );
 
 // API ROUTES
@@ -143,6 +141,6 @@ server.listen(PORT, () => {
   console.log("Socket.IO is enabled.");
   console.log("Allowed frontend origins:", allowedOrigins);
 
-  // Start automatic schedule status updates
+  // START AUTOMATIC SCHEDULE STATUS UPDATES
   startScheduleStatusScheduler(io);
 });

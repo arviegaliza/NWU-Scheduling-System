@@ -1,3 +1,4 @@
+
 import { io } from "socket.io-client";
 
 const SOCKET_URL = (
@@ -6,5 +7,9 @@ const SOCKET_URL = (
 
 export const socket = io(SOCKET_URL, {
   autoConnect: true,
-  transports: ["websocket", "polling"],
+  transports: ["polling", "websocket"],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
 });
