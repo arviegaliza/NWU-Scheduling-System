@@ -1,0 +1,183 @@
+
+:root {
+  --maroon: #800000;
+  --maroon-dark: #650000;
+  --maroon-light: #a52a2a;
+  --white: #ffffff;
+}
+
+/* TOPBAR */
+
+
+.topbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1000;
+
+  height: 76px;
+  width: calc(100% - 245px);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 30px;
+  box-sizing: border-box;
+
+  background: #800000;
+  color: #ffffff;
+
+  border-bottom: 1px solid #650000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Sidebar minimized */
+
+.sidebar.sidebar-closed ~ .topbar {
+  width: calc(100% - 78px);
+}
+
+/* PAGE HEADING */
+
+.topbar-heading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.topbar-heading h2 {
+  margin: 0;
+
+  color: var(--white);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.topbar-heading p {
+  margin: 4px 0 0;
+
+  color: #f0dada;
+  font-size: 12px;
+}
+
+/* RIGHT ACTIONS */
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* ADMIN PROFILE */
+
+.admin-profile {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+/* AVATAR */
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background: var(--white);
+  color: var(--maroon);
+
+  border: 2px solid #ffffff80;
+  border-radius: 50%;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatar span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* PROFILE DETAILS */
+
+.admin-profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.admin-profile-details strong {
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-profile-details small {
+  color: #f0dada;
+  font-size: 11px;
+}
+
+/* SIDEBAR COMPATIBILITY */
+
+.sidebar.sidebar-closed ~ .topbar {
+  width: calc(100% - 78px);
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+  .topbar {
+    width: calc(100% - 78px);
+    height: 65px;
+    padding: 0 15px;
+  }
+
+  .topbar-heading h2 {
+    font-size: 16px;
+  }
+
+  .topbar-heading p {
+    font-size: 10px;
+  }
+
+  .admin-profile-details {
+    display: none;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 0 10px;
+  }
+
+  .topbar-heading h2 {
+    font-size: 14px;
+  }
+
+  .topbar-heading p {
+    font-size: 9px;
+  }
+}

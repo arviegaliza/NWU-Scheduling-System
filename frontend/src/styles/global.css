@@ -100,7 +100,7 @@ button {
 
 .sidebar-link:hover,
 .sidebar-link.active {
-  background: #294768;
+  background: orangered;
   color: white;
 }
 
@@ -120,85 +120,51 @@ button {
   color: #f4b5b5;
 }
 
-/* Main Content */
+
+/* =================================
+   MAIN CONTENT LAYOUT
+================================= */
 
 .main-content {
-  margin-left: 250px;
-  width: calc(100% - 250px);
+  margin-left: 245px;
+  margin-top: 76px;
+
+  width: calc(100% - 245px);
+  min-height: calc(100vh - 76px);
+
+  box-sizing: border-box;
+
+  transition: margin-left 0.3s ease;
 }
 
-.topbar {
-  height: 76px;
-  background: white;
-  border-bottom: 1px solid #e7eaf0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 30px;
-}
-
-.topbar h2 {
-  font-size: 18px;
-}
-
-.topbar p {
-  color: #8490a1;
-  font-size: 11px;
-  margin-top: 4px;
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-.icon-button {
-  background: transparent;
-  color: #536176;
-  position: relative;
-}
-
-.notification-dot {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  background: #e65b5b;
-  border-radius: 50%;
-  top: 0;
-  right: 0;
-}
-
-.admin-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.admin-profile strong,
-.admin-profile small {
-  display: block;
-  font-size: 12px;
-}
-
-.admin-profile small {
-  color: #8792a1;
-  margin-top: 3px;
-}
-
-.avatar {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #e5edf8;
-  color: #17365d;
-  font-weight: bold;
-}
+/* PAGE CONTENT */
 
 .page-content {
+  width: 100%;
   padding: 30px;
+  box-sizing: border-box;
+}
+
+/* MINIMIZED SIDEBAR */
+
+.sidebar.sidebar-closed ~ .main-content {
+  margin-left: 78px;
+  width: calc(100% - 78px);
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 78px;
+    margin-top: 65px;
+    width: calc(100% - 78px);
+    min-height: calc(100vh - 65px);
+  }
+
+  .page-content {
+    padding: 15px;
+  }
 }
 
 /* Dashboard */

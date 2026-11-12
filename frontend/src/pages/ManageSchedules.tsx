@@ -23,21 +23,30 @@ const API_URL = `${
   import.meta.env.VITE_API_URL || "http://localhost:5000"
 }/api/schedules`;
 
+const ITEMS_PER_PAGE = 10;
+
 export default function ManageSchedules() {
   const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [editingSchedule, setEditingSchedule] =
     useState<ScheduleRecord | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+
+  // PAGINATION
+  const [currentPage, setCurrentPage] = useState(1);
 
   // FETCH SCHEDULES
   const fetchSchedules = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
+
       setError("");
 
       const response = await fetch(API_URL);
@@ -55,6 +64,7 @@ export default function ManageSchedules() {
       setSchedules(data);
     } catch (err) {
       console.error("Fetch schedules error:", err);
+
       setError(
         "Unable to load schedules. Please check your backend connection."
       );
@@ -77,6 +87,11 @@ export default function ManageSchedules() {
       socket.off("schedules:updated", handleScheduleUpdate);
     };
   }, [fetchSchedules]);
+
+  // RESET TO PAGE 1 WHEN SEARCH OR FILTER CHANGES
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
 
   // CHECK IF SCHEDULE CAN STILL BE EDITED OR CANCELLED
   const canManageSchedule = (status: string) => {
@@ -233,6 +248,38 @@ export default function ManageSchedules() {
     return matchesSearch && matchesFilter;
   });
 
+  // PAGINATION CALCULATIONS
+  const totalPages = Math.ceil(
+    filteredSchedules.length / ITEMS_PER_PAGE
+  );
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+
+  const currentSchedules = filteredSchedules.slice(
+    startIndex,
+    endIndex
+  );
+
+  // KEEP CURRENT PAGE VALID AFTER DELETIONS OR FILTER CHANGES
+  const safeCurrentPage = Math.max(
+    1,
+    Math.min(currentPage, totalPages || 1)
+  );
+
+  // PAGE NAVIGATION
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // PAGE NUMBERS
+  const pageNumbers = Array.from(
+    { length: totalPages },
+    (_, index) => index + 1
+  );
+
   return (
     <div className="page-container manage-schedules-page">
 
@@ -287,8 +334,11 @@ export default function ManageSchedules() {
           </select>
         </div>
 
+        {/* ERROR MESSAGE */}
         {error && (
-          <div className="error-message">{error}</div>
+          <div className="error-message">
+            {error}
+          </div>
         )}
 
         {/* SCHEDULE TABLE */}
@@ -310,10 +360,12 @@ export default function ManageSchedules() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8}>Loading schedules...</td>
+                  <td colSpan={8}>
+                    Loading schedules...
+                  </td>
                 </tr>
-              ) : filteredSchedules.length > 0 ? (
-                filteredSchedules.map((schedule) => {
+              ) : currentSchedules.length > 0 ? (
+                currentSchedules.map((schedule) => {
                   const status = String(
                     schedule.status || "Pending"
                   );
@@ -394,12 +446,75 @@ export default function ManageSchedules() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={8}>No schedules found.</td>
+                  <td colSpan={8}>
+                    No schedules found.
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* PAGINATION */}
+        {!loading && filteredSchedules.length > 0 && (
+          <div className="pagination-container">
+
+            <div className="pagination-info">
+              Showing{" "}
+              <strong>
+                {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1}
+              </strong>
+              {" "}to{" "}
+              <strong>
+                {Math.min(
+                  safeCurrentPage * ITEMS_PER_PAGE,
+                  filteredSchedules.length
+                )}
+              </strong>
+              {" "}of{" "}
+              <strong>{filteredSchedules.length}</strong>
+              {" "}schedules
+            </div>
+
+            <div className="pagination-controls">
+
+              <button
+                type="button"
+                className="pagination-button"
+                onClick={() => goToPage(safeCurrentPage - 1)}
+                disabled={safeCurrentPage === 1}
+              >
+                Previous
+              </button>
+
+              {pageNumbers.map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  className={`pagination-number ${
+                    safeCurrentPage === page ? "active" : ""
+                  }`}
+                  onClick={() => goToPage(page)}
+                  aria-current={
+                    safeCurrentPage === page ? "page" : undefined
+                  }
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                className="pagination-button"
+                onClick={() => goToPage(safeCurrentPage + 1)}
+                disabled={safeCurrentPage === totalPages}
+              >
+                Next
+              </button>
+
+            </div>
+          </div>
+        )}
       </div>
 
       {/* EDIT SCHEDULE MODAL */}
@@ -451,6 +566,7 @@ export default function ManageSchedules() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

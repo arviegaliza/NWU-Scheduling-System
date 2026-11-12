@@ -1,6 +1,8 @@
+
 import { useEffect, useState } from "react";
 import { UserCircle } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import "../../styles/Topbar.css";
 
 const SERVER_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -89,10 +91,13 @@ export default function Topbar() {
         .join("")
     : "AD";
 
+  const pageTitle =
+    titles[location.pathname] || "Research Scheduler";
+
   return (
     <header className="topbar">
-      <div>
-        <h2>{titles[location.pathname] || "Research Scheduler"}</h2>
+      <div className="topbar-heading">
+        <h2>{pageTitle}</h2>
         <p>NWU Research Scheduling Management System</p>
       </div>
 
@@ -116,6 +121,10 @@ export default function Topbar() {
             <strong>
               {profile?.fullName || "Loading profile..."}
             </strong>
+
+            <small>
+              {profile?.role || "Administrator"}
+            </small>
           </div>
         </div>
       </div>
