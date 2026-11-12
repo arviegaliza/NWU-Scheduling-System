@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -27,7 +28,7 @@ interface Schedule {
   startTime: string;
   endTime: string;
   venue: string;
-  panelChair: string;
+  panelists: string[] | string | null;
   status: "Pending" | "Approved" | "Completed" | "Cancelled";
 }
 
@@ -46,6 +47,36 @@ const Dashboard = () => {
 
   const [selectedSchedule, setSelectedSchedule] =
     useState<Schedule | null>(null);
+
+  // Normalize panelists into an array of names
+  const getPanelists = (panelists: Schedule["panelists"]): string[] => {
+    if (Array.isArray(panelists)) {
+      return panelists
+        .filter((name) => typeof name === "string")
+        .map((name) => name.trim())
+        .filter(Boolean);
+    }
+
+    if (typeof panelists === "string" && panelists.trim()) {
+      try {
+        const parsed = JSON.parse(panelists);
+
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter((name) => typeof name === "string")
+            .map((name) => name.trim())
+            .filter(Boolean);
+        }
+      } catch {
+        return panelists
+          .split(",")
+          .map((name) => name.trim())
+          .filter(Boolean);
+      }
+    }
+
+    return [];
+  };
 
   // Fetch schedules from the database
   const fetchSchedules = useCallback(async () => {
@@ -79,27 +110,27 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Initial loading and automatic refresh every 30 seconds
- useEffect(() => {
-  fetchSchedules();
-
-  const handleScheduleUpdate = () => {
+  // Initial loading and automatic refresh
+  useEffect(() => {
     fetchSchedules();
-  };
 
-  socket.on("schedules:updated", handleScheduleUpdate);
+    const handleScheduleUpdate = () => {
+      fetchSchedules();
+    };
 
-  const handleFocus = () => {
-    fetchSchedules();
-  };
+    socket.on("schedules:updated", handleScheduleUpdate);
 
-  window.addEventListener("focus", handleFocus);
+    const handleFocus = () => {
+      fetchSchedules();
+    };
 
-  return () => {
-    socket.off("schedules:updated", handleScheduleUpdate);
-    window.removeEventListener("focus", handleFocus);
-  };
-}, [fetchSchedules]);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      socket.off("schedules:updated", handleScheduleUpdate);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [fetchSchedules]);
 
   // Today's date in YYYY-MM-DD format
   const today = new Date().toLocaleDateString("en-CA");
@@ -121,10 +152,13 @@ const Dashboard = () => {
     (schedule) => schedule.status === "Completed"
   ).length;
 
-  const panelChairs = new Set(
-    schedules
-      .map((schedule) => schedule.panelChair?.trim())
-      .filter((chair) => chair)
+  // Count unique panelists across all schedules
+  const uniquePanelists = new Set(
+    schedules.flatMap((schedule) =>
+      getPanelists(schedule.panelists).map((panelist) =>
+        panelist.toLowerCase()
+      )
+    )
   ).size;
 
   // Sort upcoming schedules by date and start time
@@ -218,7 +252,10 @@ const Dashboard = () => {
             disabled={loading}
             type="button"
           >
-            <RefreshCw size={16} className={loading ? "spinning" : ""} />
+            <RefreshCw
+              size={16}
+              className={loading ? "spinning" : ""}
+            />
             Refresh
           </button>
 
@@ -320,7 +357,7 @@ const Dashboard = () => {
           </div>
         </button>
 
-        {/* Panel Chairs */}
+        {/* Panelists */}
         <button
           className="dashboard-stat-card"
           onClick={openSchedules}
@@ -336,9 +373,9 @@ const Dashboard = () => {
           </div>
 
           <div className="stat-card-content">
-            <span className="stat-label">Panel Chairs</span>
-            <h2>{loading ? "..." : panelChairs}</h2>
-            <p>Unique panel chairs in schedules</p>
+            <span className="stat-label">Panelists</span>
+            <h2>{loading ? "..." : uniquePanelists}</h2>
+            <p>Unique panelists in schedules</p>
           </div>
         </button>
 
@@ -374,7 +411,9 @@ const Dashboard = () => {
             <div className="dashboard-empty-state">
               <CalendarDays size={38} />
               <h3>No Upcoming Schedules</h3>
-              <p>There are currently no upcoming research activities.</p>
+              <p>
+                There are currently no upcoming research activities.
+              </p>
 
               <button
                 className="dashboard-create-button"
@@ -551,14 +590,16 @@ const Dashboard = () => {
                 {selectedSchedule.researchTitle}
               </div>
 
+              {/* Proponents */}
               <div className="modal-detail-row">
                 <User size={18} />
                 <div>
-                  <span>Researcher</span>
-                  <strong>{selectedSchedule.researcher}</strong>
+                  <span>Proponents</span>
+                  <strong>{selectedSchedule.researcher || "N/A"}</strong>
                 </div>
               </div>
 
+              {/* Research Activity */}
               <div className="modal-detail-row">
                 <ClipboardList size={18} />
                 <div>
@@ -567,6 +608,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
+              {/* Schedule Date */}
               <div className="modal-detail-row">
                 <CalendarDays size={18} />
                 <div>
@@ -575,6 +617,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
+              {/* Time */}
               <div className="modal-detail-row">
                 <Clock size={18} />
                 <div>
@@ -586,6 +629,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
+              {/* Venue */}
               <div className="modal-detail-row">
                 <MapPin size={18} />
                 <div>
@@ -594,14 +638,20 @@ const Dashboard = () => {
                 </div>
               </div>
 
+              {/* Panelists */}
               <div className="modal-detail-row">
                 <Users size={18} />
                 <div>
-                  <span>Panel Chair</span>
-                  <strong>{selectedSchedule.panelChair}</strong>
+                  <span>Panelists</span>
+                  <strong>
+                    {getPanelists(selectedSchedule.panelists).length > 0
+                      ? getPanelists(selectedSchedule.panelists).join(", ")
+                      : "No panelists assigned"}
+                  </strong>
                 </div>
               </div>
 
+              {/* Status */}
               <div className="modal-status-row">
                 <span>Status</span>
                 <span
