@@ -32,29 +32,15 @@ button {
   min-height: 100vh;
 }
 
-/* MAROON SIDEBAR */
 .sidebar {
-  background: #800000;
-  color: #ffffff;
-}
-
-.sidebar-label {
-  color: #e0bcbc;
-}
-
-.sidebar-link,
-.logout-button {
-  color: #f5eaea;
-}
-
-.sidebar-link:hover,
-.sidebar-link.active {
-  background: #650000;
-  color: #ffffff;
-}
-
-.sidebar-link.active {
-  border-left: 3px solid #ffffff;
+  width: 250px;
+  background: #142c4c;
+  color: white;
+  position: fixed;
+  inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
 }
 
 .sidebar-brand {
@@ -141,46 +127,14 @@ button {
   width: calc(100% - 250px);
 }
 
-/* MAROON TOPBAR */
 .topbar {
-  background: #800000;
-  color: #ffffff;
-  border-bottom: 1px solid #650000;
-}
-
-.topbar h2 {
-  color: #ffffff;
-}
-
-.topbar p {
-  color: #e0bcbc;
-}
-
-.icon-button {
-  color: #ffffff;
-}
-
-.admin-profile strong {
-  color: #ffffff;
-}
-
-.admin-profile small {
-  color: #e0bcbc;
-}
-
-.avatar {
-  background: #ffffff;
-  color: #800000;
-}
-
-/* BRAND ICON */
-.brand-icon {
-  background: #650000;
-}
-
-/* SIDEBAR BOTTOM */
-.sidebar-bottom {
-  border-top: 1px solid #ffffff30;
+  height: 76px;
+  background: white;
+  border-bottom: 1px solid #e7eaf0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
 }
 
 .topbar h2 {
